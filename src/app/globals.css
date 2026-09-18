@@ -1,0 +1,252 @@
+@import "tailwindcss";
+
+/*
+ * Theming works by driving every palette token from CSS variables and
+ * swapping those variables under `.dark`. The `ink` scale is deliberately
+ * inverted in dark mode, so `text-ink-900` stays "primary text" and
+ * `bg-ink-100` stays "page background" in both themes without touching
+ * component markup.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+
+  --ink-50: #f8fafc;
+  --ink-100: #f1f5f9;
+  --ink-200: #e2e8f0;
+  --ink-300: #cbd5e1;
+  --ink-400: #94a3b8;
+  --ink-500: #64748b;
+  --ink-600: #475569;
+  --ink-700: #334155;
+  --ink-800: #1e293b;
+  --ink-900: #0f172a;
+  --ink-950: #020617;
+
+  --surface: #ffffff;
+
+  --brand-50: #eef2ff;
+  --brand-100: #e0e7ff;
+  --brand-500: #6366f1;
+  --brand-600: #4f46e5;
+  --brand-700: #4338ca;
+
+  --good-bg: #ecfdf5;
+  --good-border: #a7f3d0;
+  --good-fg: #059669;
+  --good-fg-strong: #047857;
+  --good-solid: #059669;
+
+  --warn-bg: #fffbeb;
+  --warn-border: #fde68a;
+  --warn-fg: #d97706;
+  --warn-fg-strong: #b45309;
+  --warn-solid: #f59e0b;
+
+  --bad-bg: #fff1f2;
+  --bad-bg-hover: #ffe4e6;
+  --bad-border: #fecdd3;
+  --bad-fg: #e11d48;
+  --bad-fg-strong: #be123c;
+  --bad-solid: #e11d48;
+
+  --money-in: #059669;
+  --money-out: #e11d48;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Inverted: 50 is the darkest, 900 is the brightest. */
+  --ink-50: #141d2b;
+  --ink-100: #0f172a;
+  --ink-200: #2a3648;
+  --ink-300: #3b4a60;
+  --ink-400: #6b7c94;
+  --ink-500: #94a3b8;
+  --ink-600: #b6c2d2;
+  --ink-700: #d3dce7;
+  --ink-800: #e8eef5;
+  --ink-900: #f5f8fb;
+  --ink-950: #ffffff;
+
+  --surface: #1a2332;
+
+  --brand-50: #20214a;
+  --brand-100: #3730a3;
+  --brand-500: #818cf8;
+  --brand-600: #6366f1;
+  --brand-700: #a5b4fc;
+
+  --good-bg: #0c2f24;
+  --good-border: #15603f;
+  --good-fg: #34d399;
+  --good-fg-strong: #6ee7b7;
+  --good-solid: #10b981;
+
+  --warn-bg: #2e2205;
+  --warn-border: #78430f;
+  --warn-fg: #fbbf24;
+  --warn-fg-strong: #fcd34d;
+  --warn-solid: #f59e0b;
+
+  --bad-bg: #2d1015;
+  --bad-bg-hover: #3d161d;
+  --bad-border: #7f1d2d;
+  --bad-fg: #fb7185;
+  --bad-fg-strong: #fda4af;
+  --bad-solid: #f43f5e;
+
+  --money-in: #34d399;
+  --money-out: #fb7185;
+}
+
+@theme inline {
+  --color-ink-50: var(--ink-50);
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-300: var(--ink-300);
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-600: var(--ink-600);
+  --color-ink-700: var(--ink-700);
+  --color-ink-800: var(--ink-800);
+  --color-ink-900: var(--ink-900);
+  --color-ink-950: var(--ink-950);
+
+  --color-surface: var(--surface);
+
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+
+  /* Semantic tones — these override Tailwind's built-in ramps so existing
+     emerald/amber/rose utilities follow the active theme. */
+  --color-emerald-50: var(--good-bg);
+  --color-emerald-200: var(--good-border);
+  --color-emerald-600: var(--good-fg);
+  --color-emerald-700: var(--good-fg-strong);
+
+  --color-amber-50: var(--warn-bg);
+  --color-amber-200: var(--warn-border);
+  --color-amber-500: var(--warn-solid);
+  --color-amber-600: var(--warn-fg);
+  --color-amber-700: var(--warn-fg-strong);
+
+  --color-rose-50: var(--bad-bg);
+  --color-rose-100: var(--bad-bg-hover);
+  --color-rose-200: var(--bad-border);
+  --color-rose-600: var(--bad-fg);
+  --color-rose-700: var(--bad-fg-strong);
+
+  --color-money-in: var(--money-in);
+  --color-money-out: var(--money-out);
+
+  /* Saturated fills that must stay legible under white text in both themes. */
+  --color-good-solid: var(--good-solid);
+  --color-warn-solid: var(--warn-solid);
+  --color-bad-solid: var(--bad-solid);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--ink-100);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+  /* Respect iOS safe areas so the bottom nav clears the home indicator. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Tabular figures keep rupee columns from jittering as values change. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.28s ease-out both;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-sheet {
+  animation: sheet-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-sheet {
+    animation: none;
+  }
+}
+
+/* Hide scrollbars on horizontal chip rows without losing scrollability. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Loading skeletons: a sheen sweeping across a muted block. */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--ink-200);
+  border-radius: 0.5rem;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklab, var(--surface) 55%, transparent) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
