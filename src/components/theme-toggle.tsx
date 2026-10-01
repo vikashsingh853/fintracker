@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -35,7 +36,8 @@ const THEME_EVENT = "fintrack:theme-change";
 
 function applyTheme(preference: ThemePreference) {
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = preference === "dark" || (preference === "system" && prefersDark);
+  const dark =
+    preference === "dark" || (preference === "system" && prefersDark);
   document.documentElement.classList.toggle("dark", dark);
   document.documentElement.style.colorScheme = dark ? "dark" : "light";
 }
@@ -54,7 +56,10 @@ function subscribe(onChange: () => void) {
 }
 
 function getSnapshot(): ThemePreference {
-  return (localStorage.getItem(THEME_STORAGE_KEY) as ThemePreference | null) ?? "system";
+  return (
+    (localStorage.getItem(THEME_STORAGE_KEY) as ThemePreference | null) ??
+    "system"
+  );
 }
 
 /** The server can't know the preference, so it renders the neutral default. */
@@ -62,11 +67,38 @@ function getServerSnapshot(): ThemePreference {
   return "system";
 }
 
-const OPTIONS: Array<{ value: ThemePreference; label: string; icon: typeof Sun }> = [
+const OPTIONS: Array<{
+  value: ThemePreference;
+  label: string;
+  icon: typeof Sun;
+}> = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
   { value: "system", label: "System", icon: Monitor },
 ];
+
+/**
+ * Re-applies the theme after hydration and whenever the OS scheme, another tab
+ * or the toggle changes it. React can reset <html> attributes set by the init
+ * script (e.g. after a hydration mismatch), so the script alone isn't enough.
+ */
+export function ThemeSync() {
+  useLayoutEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const sync = () => applyTheme(getSnapshot());
+    sync();
+    media.addEventListener("change", sync);
+    window.addEventListener("storage", sync);
+    window.addEventListener(THEME_EVENT, sync);
+    return () => {
+      media.removeEventListener("change", sync);
+      window.removeEventListener("storage", sync);
+      window.removeEventListener(THEME_EVENT, sync);
+    };
+  }, []);
+
+  return null;
+}
 
 export function ThemeToggle({
   className,
@@ -79,7 +111,11 @@ export function ThemeToggle({
   /** Open upward when the trigger sits near the bottom of the viewport. */
   placement?: "top" | "bottom";
 }) {
-  const preference = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const preference = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -133,7 +169,10 @@ export function ThemeToggle({
         <ActiveIcon size={15} strokeWidth={2} />
         <ChevronDown
           size={13}
-          className={clsx("text-ink-400 transition-transform", open && "rotate-180")}
+          className={clsx(
+            "text-ink-400 transition-transform",
+            open && "rotate-180",
+          )}
         />
       </button>
 

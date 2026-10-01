@@ -22,7 +22,13 @@ import { Sheet } from "./sheet";
 /* Party                                                               */
 /* ------------------------------------------------------------------ */
 
-function PartyForm({ party, onDone }: { party?: PartyDTO; onDone: () => void }) {
+function PartyForm({
+  party,
+  onDone,
+}: {
+  party?: PartyDTO;
+  onDone: () => void;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +81,10 @@ function PartyForm({ party, onDone }: { party?: PartyDTO; onDone: () => void }) 
         />
       </Field>
 
-      <Field label="Mobile number" hint="Optional — helps you reach them for reminders.">
+      <Field
+        label="Mobile number"
+        hint="Optional — helps you reach them for reminders."
+      >
         <Input
           name="phone"
           type="tel"
@@ -112,18 +121,29 @@ function PartyForm({ party, onDone }: { party?: PartyDTO; onDone: () => void }) 
           {pending ? "Saving…" : party ? "Save changes" : "Add contact"}
         </Button>
         {party && (
-          <Button type="button" variant="danger" onClick={handleDelete} disabled={pending}>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleDelete}
+            disabled={pending}
+          >
             Delete
           </Button>
         )}
-        <Button type="button" variant="secondary" onClick={onDone} disabled={pending}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onDone}
+          disabled={pending}
+        >
           Cancel
         </Button>
       </div>
 
       {party && (
         <p className="text-[11px] leading-relaxed text-ink-500">
-          Deleting a contact also removes their whole statement. This can&apos;t be undone.
+          Deleting a contact also removes their whole statement. This can&apos;t
+          be undone.
         </p>
       )}
     </form>
@@ -155,7 +175,12 @@ export function EditPartyButton({ party }: { party: PartyDTO }) {
 
   return (
     <>
-      <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => setOpen(true)}
+      >
         Edit
       </Button>
       <Sheet
@@ -190,7 +215,9 @@ function EntryForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [entryType, setEntryType] = useState<KhataEntryType>(entry?.type ?? type);
+  const [entryType, setEntryType] = useState<KhataEntryType>(
+    entry?.type ?? type,
+  );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -237,7 +264,9 @@ function EntryForm({
           aria-pressed={entryType === "GAVE"}
           className={clsx(
             "rounded-lg px-2 py-2 text-xs font-semibold transition",
-            entryType === "GAVE" ? "bg-bad-solid text-white" : "text-ink-600 hover:bg-surface",
+            entryType === "GAVE"
+              ? "bg-bad-solid text-white"
+              : "text-ink-600 hover:bg-surface",
           )}
         >
           You gave
@@ -248,7 +277,9 @@ function EntryForm({
           aria-pressed={entryType === "GOT"}
           className={clsx(
             "rounded-lg px-2 py-2 text-xs font-semibold transition",
-            entryType === "GOT" ? "bg-good-solid text-white" : "text-ink-600 hover:bg-surface",
+            entryType === "GOT"
+              ? "bg-good-solid text-white"
+              : "text-ink-600 hover:bg-surface",
           )}
         >
           You got
@@ -276,7 +307,26 @@ function EntryForm({
           type="date"
           name="date"
           required
-          defaultValue={toDateInputValue(entry ? new Date(entry.date) : new Date())}
+          defaultValue={toDateInputValue(
+            entry ? new Date(entry.date) : new Date(),
+          )}
+        />
+      </Field>
+
+      <Field
+        label="Due date (optional)"
+        hint={
+          entryType === "GAVE"
+            ? `When ${partyName} should pay you back — shown on your dashboard.`
+            : `When you need to pay ${partyName} — shown on your dashboard.`
+        }
+      >
+        <Input
+          type="date"
+          name="dueDate"
+          defaultValue={
+            entry?.dueDate ? toDateInputValue(new Date(entry.dueDate)) : ""
+          }
         />
       </Field>
 
@@ -296,11 +346,21 @@ function EntryForm({
           {pending ? "Saving…" : entry ? "Save changes" : "Add entry"}
         </Button>
         {entry && (
-          <Button type="button" variant="danger" onClick={handleDelete} disabled={pending}>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleDelete}
+            disabled={pending}
+          >
             Delete
           </Button>
         )}
-        <Button type="button" variant="secondary" onClick={onDone} disabled={pending}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onDone}
+          disabled={pending}
+        >
           Cancel
         </Button>
       </div>
@@ -314,7 +374,7 @@ export function EntryActions({ party }: { party: PartyDTO }) {
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-ink-200 bg-surface p-3 md:static md:mt-4 md:border-0 md:bg-transparent md:p-0">
+      <div className="fixed inset-x-0 bottom-[calc(55px+env(safe-area-inset-bottom))] z-30 border-t border-ink-200 bg-surface p-3 md:static md:mt-4 md:border-0 md:bg-transparent md:p-0">
         <div className="mx-auto flex max-w-3xl gap-2 md:max-w-none">
           <button
             type="button"
@@ -412,7 +472,13 @@ export function SettleButton({ party }: { party: PartyDTO }) {
 
   return (
     <span className="inline-flex flex-col items-end gap-1">
-      <Button type="button" variant="secondary" size="sm" onClick={handleSettle} disabled={pending}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={handleSettle}
+        disabled={pending}
+      >
         {pending ? "Settling…" : "Settle up"}
       </Button>
       {error && <ErrorNote message={error} />}

@@ -12,15 +12,15 @@ datasource db {
 }
 
 model User {
-  id String @id @default(cuid())
+  id               String   @id @default(cuid())
   // Indian mobile number, stored as 10 digits — the login identifier.
-  phone        String  @unique
-  passwordHash String
-  email        String? @unique
-  name         String
-  currency     String  @default("INR")
+  phone            String   @unique
+  passwordHash     String
+  email            String?  @unique
+  name             String
+  currency         String   @default("INR")
   // Salary Intelligence: expected monthly take-home, used to seed allocations.
-  monthlyIncome BigInt @default(0)
+  monthlyIncome    BigInt   @default(0)
   // Safe-to-Spend: portion of income the user always wants to protect.
   savingsTargetPct Int      @default(20)
   createdAt        DateTime @default(now())
@@ -35,6 +35,98 @@ model User {
   sessions       Session[]
   parties        Party[]
   khataEntries   KhataEntry[]
+  groupsCreated  Group[]
+  groupMembers   GroupMember[]
+}
+
+// Splitwise-style shared expenses. Members are referenced by GroupMember id so
+// an invited person can be part of splits before they accept the invite.
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  expenses    GroupExpense[]
+  settlements GroupSettlement[]
+}
+
+model GroupMember {
+  id              String    @id @default(cuid())
+  groupId         String
+  // Null until the invitee accepts via the emailed link.
+  userId          String?
+  name            String
+  email           String
+  // OWNER | MEMBER
+  role            String    @default("MEMBER")
+  // SHA-256 of the one-time invite token; cleared once accepted.
+  inviteTokenHash String?   @unique
+  joinedAt        DateTime?
+  createdAt       DateTime  @default(now())
+
+  group    Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  paid     GroupExpense[]      @relation("ExpensePaidBy")
+  shares   GroupExpenseShare[]
+  sent     GroupSettlement[]   @relation("SettlementFrom")
+  received GroupSettlement[]   @relation("SettlementTo")
+
+  @@unique([groupId, email])
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model GroupExpense {
+  id          String   @id @default(cuid())
+  groupId     String
+  description String
+  amount      BigInt
+  paidById    String
+  // EQUAL | EXACT | PERCENT
+  splitType   String   @default("EQUAL")
+  date        DateTime
+  createdById String
+  createdAt   DateTime @default(now())
+
+  group  Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy GroupMember         @relation("ExpensePaidBy", fields: [paidById], references: [id], onDelete: Cascade)
+  shares GroupExpenseShare[]
+
+  @@index([groupId, date])
+}
+
+model GroupExpenseShare {
+  id        String @id @default(cuid())
+  expenseId String
+  memberId  String
+  amount    BigInt
+
+  expense GroupExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  member  GroupMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, memberId])
+  @@index([memberId])
+}
+
+model GroupSettlement {
+  id           String   @id @default(cuid())
+  groupId      String
+  fromMemberId String
+  toMemberId   String
+  amount       BigInt
+  date         DateTime
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  group Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  from  GroupMember @relation("SettlementFrom", fields: [fromMemberId], references: [id], onDelete: Cascade)
+  to    GroupMember @relation("SettlementTo", fields: [toMemberId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, date])
 }
 
 // Khata (udhaar) ledger: people and businesses you owe, or who owe you.
@@ -60,7 +152,7 @@ model Party {
 }
 
 model KhataEntry {
-  id      String @id @default(cuid())
+  id      String    @id @default(cuid())
   userId  String
   partyId String
   // GAVE — you gave money or goods on credit, so they owe you more
@@ -69,6 +161,8 @@ model KhataEntry {
   amount  BigInt
   date    DateTime
   note    String?
+  // When this udhaar should be settled — drives the due list on the dashboard.
+  dueDate DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -78,6 +172,7 @@ model KhataEntry {
 
   @@index([userId, partyId, date])
   @@index([partyId, date])
+  @@index([userId, dueDate])
 }
 
 // Server-side sessions so a login can be revoked without rotating secrets.
@@ -95,11 +190,11 @@ model Session {
 }
 
 model Account {
-  id     String @id @default(cuid())
-  userId String
-  name   String
+  id             String @id @default(cuid())
+  userId         String
+  name           String
   // BANK | CASH | CREDIT_CARD | WALLET | INVESTMENT | LOAN
-  type   String
+  type           String
   // Integer paise. Current balance is derived: opening + inflows - outflows.
   openingBalance BigInt @default(0)
   currency       String @default("INR")
@@ -157,7 +252,7 @@ model Category {
 }
 
 model Transaction {
-  id     String @id @default(cuid())
+  id     String   @id @default(cuid())
   userId String
   // INCOME | EXPENSE | TRANSFER
   type   String
@@ -205,12 +300,12 @@ model Transaction {
 // Powers recurring transactions, the bill/subscription manager and the
 // upcoming-outflow side of Safe to Spend.
 model RecurringRule {
-  id     String @id @default(cuid())
-  userId String
-  name   String
+  id         String  @id @default(cuid())
+  userId     String
+  name       String
   // INCOME | EXPENSE | TRANSFER
-  type   String
-  amount BigInt
+  type       String
+  amount     BigInt
   // Amount varies month to month (electricity, credit card bill).
   isVariable Boolean @default(false)
 
@@ -220,7 +315,7 @@ model RecurringRule {
 
   // DAILY | WEEKLY | MONTHLY | QUARTERLY | YEARLY
   frequency   String
-  interval    Int  @default(1)
+  interval    Int    @default(1)
   dayOfMonth  Int?
   weekday     Int?
   monthOfYear Int?
@@ -232,7 +327,7 @@ model RecurringRule {
 
   // true  -> auto-create the transaction when due
   // false -> only remind (bills the user pays manually)
-  autoPost Boolean @default(false)
+  autoPost           Boolean @default(false)
   // Surfaces in the Bills & Subscriptions view.
   isBill             Boolean @default(true)
   reminderDaysBefore Int     @default(2)
@@ -253,7 +348,7 @@ model RecurringRule {
 }
 
 model Budget {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   userId     String
   categoryId String
   // "YYYY-MM" — avoids timezone drift on month boundaries.

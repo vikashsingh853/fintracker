@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 import { getCurrentUserId } from "./session";
 import { toNumber } from "./money";
 import type {
+  DueKhataItem,
   KhataEntryDTO,
   KhataEntryType,
   KhataSummary,
@@ -25,7 +26,9 @@ function netBalance(gave: number, got: number) {
   return gave - got;
 }
 
-export const getParties = cache(async function getParties(search?: string): Promise<PartyDTO[]> {
+export const getParties = cache(async function getParties(
+  search?: string,
+): Promise<PartyDTO[]> {
   const userId = await getCurrentUserId();
 
   const parties = await prisma.party.findMany({
@@ -91,18 +94,58 @@ export const getParties = cache(async function getParties(search?: string): Prom
   }));
 });
 
-export const getKhataSummary = cache(async function getKhataSummary(): Promise<KhataSummary> {
-  const parties = await getParties();
+export const getKhataSummary = cache(
+  async function getKhataSummary(): Promise<KhataSummary> {
+    const parties = await getParties();
 
-  let toGet = 0;
-  let toGive = 0;
+    let toGet = 0;
+    let toGive = 0;
 
-  for (const party of parties) {
-    if (party.balance > 0) toGet += party.balance;
-    else if (party.balance < 0) toGive += -party.balance;
-  }
+    for (const party of parties) {
+      if (party.balance > 0) toGet += party.balance;
+      else if (party.balance < 0) toGive += -party.balance;
+    }
 
-  return { toGet, toGive, net: toGet - toGive, partyCount: parties.length };
+    return { toGet, toGive, net: toGet - toGive, partyCount: parties.length };
+  },
+);
+
+/** Entries with a due date whose contact still has an open balance, soonest first. */
+export const getDueKhataEntries = cache(async function getDueKhataEntries(
+  limit = 5,
+): Promise<DueKhataItem[]> {
+  const userId = await getCurrentUserId();
+
+  const [parties, rows] = await Promise.all([
+    getParties(),
+    prisma.khataEntry.findMany({
+      where: { userId, dueDate: { not: null }, party: { isArchived: false } },
+      orderBy: { dueDate: "asc" },
+      select: {
+        id: true,
+        partyId: true,
+        type: true,
+        amount: true,
+        dueDate: true,
+      },
+    }),
+  ]);
+
+  const open = new Map(
+    parties.filter((p) => p.balance !== 0).map((p) => [p.id, p.name]),
+  );
+
+  return rows
+    .filter((row) => open.has(row.partyId))
+    .slice(0, limit)
+    .map((row) => ({
+      entryId: row.id,
+      partyId: row.partyId,
+      partyName: open.get(row.partyId)!,
+      type: row.type as KhataEntryType,
+      amount: toNumber(row.amount),
+      dueDate: row.dueDate!.toISOString(),
+    }));
 });
 
 export interface PartyDetail {
@@ -110,10 +153,14 @@ export interface PartyDetail {
   entries: KhataEntryDTO[];
 }
 
-export const getPartyDetail = cache(async function getPartyDetail(partyId: string): Promise<PartyDetail | null> {
+export const getPartyDetail = cache(async function getPartyDetail(
+  partyId: string,
+): Promise<PartyDetail | null> {
   const userId = await getCurrentUserId();
 
-  const party = await prisma.party.findFirst({ where: { id: partyId, userId } });
+  const party = await prisma.party.findFirst({
+    where: { id: partyId, userId },
+  });
   if (!party) return null;
 
   const rows = await prisma.khataEntry.findMany({
@@ -132,6 +179,7 @@ export const getPartyDetail = cache(async function getPartyDetail(partyId: strin
       amount,
       date: e.date.toISOString(),
       note: e.note,
+      dueDate: e.dueDate?.toISOString() ?? null,
       runningBalance: running,
     };
   });

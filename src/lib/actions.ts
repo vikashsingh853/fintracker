@@ -26,6 +26,18 @@ function revalidateAll() {
   revalidatePath("/", "layout");
 }
 
+/** True when every referenced account belongs to the user. */
+async function ownsAccounts(
+  userId: string,
+  ...ids: Array<string | null | undefined>
+) {
+  const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+  const owned = await prisma.account.count({
+    where: { userId, id: { in: unique } },
+  });
+  return owned === unique.length;
+}
+
 /** ₹1,000 crore — high enough for any real personal balance, low enough to catch typos. */
 const MAX_AMOUNT_PAISE = 1_000_00_00_000_00;
 
@@ -41,12 +53,18 @@ const paiseFromRupees = z
       return z.NEVER;
     }
     if (parsed <= 0) {
-      ctx.addIssue({ code: "custom", message: "Amount must be greater than zero" });
+      ctx.addIssue({
+        code: "custom",
+        message: "Amount must be greater than zero",
+      });
       return z.NEVER;
     }
     const paise = Math.round(parsed * 100);
     if (paise > MAX_AMOUNT_PAISE) {
-      ctx.addIssue({ code: "custom", message: "That amount looks too large — please check it" });
+      ctx.addIssue({
+        code: "custom",
+        message: "That amount looks too large — please check it",
+      });
       return z.NEVER;
     }
     return BigInt(paise);
@@ -95,7 +113,8 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   const data = parsed.data;
   const isCredit = data.type === "CREDIT_CARD";
-  const liquid = data.type === "BANK" || data.type === "CASH" || data.type === "WALLET";
+  const liquid =
+    data.type === "BANK" || data.type === "CASH" || data.type === "WALLET";
 
   await prisma.account.create({
     data: {
@@ -116,7 +135,10 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function updateAccount(id: string, formData: FormData): Promise<ActionResult> {
+export async function updateAccount(
+  id: string,
+  formData: FormData,
+): Promise<ActionResult> {
   const parsed = accountSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
@@ -138,7 +160,8 @@ export async function updateAccount(id: string, formData: FormData): Promise<Act
       dueDay: isCredit ? optionalDay(data.dueDay) : null,
       color: data.color,
       icon: data.icon,
-      isLiquid: data.type === "BANK" || data.type === "CASH" || data.type === "WALLET",
+      isLiquid:
+        data.type === "BANK" || data.type === "CASH" || data.type === "WALLET",
     },
   });
 
@@ -180,7 +203,11 @@ const transactionSchema = z
   .superRefine((value, ctx) => {
     if (value.type === "TRANSFER") {
       if (!value.toAccountId) {
-        ctx.addIssue({ code: "custom", message: "Choose a destination account", path: ["toAccountId"] });
+        ctx.addIssue({
+          code: "custom",
+          message: "Choose a destination account",
+          path: ["toAccountId"],
+        });
       } else if (value.toAccountId === value.accountId) {
         ctx.addIssue({
           code: "custom",
@@ -189,7 +216,11 @@ const transactionSchema = z
         });
       }
     } else if (!value.categoryId) {
-      ctx.addIssue({ code: "custom", message: "Choose a category", path: ["categoryId"] });
+      ctx.addIssue({
+        code: "custom",
+        message: "Choose a category",
+        path: ["categoryId"],
+      });
     }
   });
 
@@ -199,15 +230,22 @@ function parseDate(value: string): Date {
   return new Date(year, month - 1, day, 12, 0, 0);
 }
 
-export async function createTransaction(formData: FormData): Promise<ActionResult> {
+export async function createTransaction(
+  formData: FormData,
+): Promise<ActionResult> {
   const parsed = transactionSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   const userId = await getCurrentUserId();
   const data = parsed.data;
 
-  const accountIds = [data.accountId, ...(data.toAccountId ? [data.toAccountId] : [])];
-  const owned = await prisma.account.count({ where: { userId, id: { in: accountIds } } });
+  const accountIds = [
+    data.accountId,
+    ...(data.toAccountId ? [data.toAccountId] : []),
+  ];
+  const owned = await prisma.account.count({
+    where: { userId, id: { in: accountIds } },
+  });
   if (owned !== accountIds.length) return fail("Account not found");
 
   await prisma.transaction.create({
@@ -222,7 +260,8 @@ export async function createTransaction(formData: FormData): Promise<ActionResul
       note: data.note || null,
       merchant: data.merchant || null,
       paymentMethod: data.paymentMethod,
-      excludeFromBudget: data.type === "TRANSFER" ? true : data.excludeFromBudget === "on",
+      excludeFromBudget:
+        data.type === "TRANSFER" ? true : data.excludeFromBudget === "on",
     },
   });
 
@@ -230,15 +269,23 @@ export async function createTransaction(formData: FormData): Promise<ActionResul
   return { ok: true };
 }
 
-export async function updateTransaction(id: string, formData: FormData): Promise<ActionResult> {
+export async function updateTransaction(
+  id: string,
+  formData: FormData,
+): Promise<ActionResult> {
   const parsed = transactionSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   const userId = await getCurrentUserId();
-  const existing = await prisma.transaction.findFirst({ where: { id, userId } });
+  const existing = await prisma.transaction.findFirst({
+    where: { id, userId },
+  });
   if (!existing) return fail("Transaction not found");
 
   const data = parsed.data;
+  if (!(await ownsAccounts(userId, data.accountId, data.toAccountId))) {
+    return fail("Account not found");
+  }
 
   await prisma.transaction.update({
     where: { id },
@@ -252,7 +299,8 @@ export async function updateTransaction(id: string, formData: FormData): Promise
       note: data.note || null,
       merchant: data.merchant || null,
       paymentMethod: data.paymentMethod,
-      excludeFromBudget: data.type === "TRANSFER" ? true : data.excludeFromBudget === "on",
+      excludeFromBudget:
+        data.type === "TRANSFER" ? true : data.excludeFromBudget === "on",
     },
   });
 
@@ -262,7 +310,9 @@ export async function updateTransaction(id: string, formData: FormData): Promise
 
 export async function deleteTransaction(id: string): Promise<ActionResult> {
   const userId = await getCurrentUserId();
-  const existing = await prisma.transaction.findFirst({ where: { id, userId } });
+  const existing = await prisma.transaction.findFirst({
+    where: { id, userId },
+  });
   if (!existing) return fail("Transaction not found");
 
   await prisma.transaction.delete({ where: { id } });
@@ -273,7 +323,6 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
 /* ------------------------------------------------------------------ */
 /* Categories                                                          */
 /* ------------------------------------------------------------------ */
-
 
 /* ------------------------------------------------------------------ */
 /* Budgets                                                             */
@@ -292,7 +341,9 @@ export async function upsertBudget(formData: FormData): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   const { categoryId, period, amount } = parsed.data;
 
-  const category = await prisma.category.findFirst({ where: { id: categoryId, userId } });
+  const category = await prisma.category.findFirst({
+    where: { id: categoryId, userId },
+  });
   if (!category) return fail("Category not found");
 
   await prisma.budget.upsert({
@@ -316,12 +367,18 @@ export async function deleteBudget(id: string): Promise<ActionResult> {
 }
 
 /** Copies every budget from `fromPeriod` into `toPeriod`, skipping existing ones. */
-export async function copyBudgets(fromPeriod: string, toPeriod: string): Promise<ActionResult> {
+export async function copyBudgets(
+  fromPeriod: string,
+  toPeriod: string,
+): Promise<ActionResult> {
   const userId = await getCurrentUserId();
 
   const [source, existing] = await Promise.all([
     prisma.budget.findMany({ where: { userId, period: fromPeriod } }),
-    prisma.budget.findMany({ where: { userId, period: toPeriod }, select: { categoryId: true } }),
+    prisma.budget.findMany({
+      where: { userId, period: toPeriod },
+      select: { categoryId: true },
+    }),
   ]);
 
   if (source.length === 0) return fail("No budgets to copy from that month");
@@ -329,7 +386,8 @@ export async function copyBudgets(fromPeriod: string, toPeriod: string): Promise
   const existingIds = new Set(existing.map((b) => b.categoryId));
   const toCreate = source.filter((b) => !existingIds.has(b.categoryId));
 
-  if (toCreate.length === 0) return fail("Every budget already exists this month");
+  if (toCreate.length === 0)
+    return fail("Every budget already exists this month");
 
   await prisma.budget.createMany({
     data: toCreate.map((b) => ({
@@ -367,7 +425,11 @@ const recurringSchema = z
   .superRefine((value, ctx) => {
     if (value.type === "TRANSFER") {
       if (!value.toAccountId) {
-        ctx.addIssue({ code: "custom", message: "Choose a destination account", path: ["toAccountId"] });
+        ctx.addIssue({
+          code: "custom",
+          message: "Choose a destination account",
+          path: ["toAccountId"],
+        });
       } else if (value.toAccountId === value.accountId) {
         ctx.addIssue({
           code: "custom",
@@ -376,16 +438,25 @@ const recurringSchema = z
         });
       }
     } else if (!value.categoryId) {
-      ctx.addIssue({ code: "custom", message: "Choose a category", path: ["categoryId"] });
+      ctx.addIssue({
+        code: "custom",
+        message: "Choose a category",
+        path: ["categoryId"],
+      });
     }
   });
 
-export async function createRecurringRule(formData: FormData): Promise<ActionResult> {
+export async function createRecurringRule(
+  formData: FormData,
+): Promise<ActionResult> {
   const parsed = recurringSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   const userId = await getCurrentUserId();
   const data = parsed.data;
+  if (!(await ownsAccounts(userId, data.accountId, data.toAccountId))) {
+    return fail("Account not found");
+  }
   const nextDue = parseDate(data.nextDueDate);
 
   await prisma.recurringRule.create({
@@ -412,15 +483,23 @@ export async function createRecurringRule(formData: FormData): Promise<ActionRes
   return { ok: true };
 }
 
-export async function updateRecurringRule(id: string, formData: FormData): Promise<ActionResult> {
+export async function updateRecurringRule(
+  id: string,
+  formData: FormData,
+): Promise<ActionResult> {
   const parsed = recurringSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   const userId = await getCurrentUserId();
-  const existing = await prisma.recurringRule.findFirst({ where: { id, userId } });
+  const existing = await prisma.recurringRule.findFirst({
+    where: { id, userId },
+  });
   if (!existing) return fail("Recurring rule not found");
 
   const data = parsed.data;
+  if (!(await ownsAccounts(userId, data.accountId, data.toAccountId))) {
+    return fail("Account not found");
+  }
   const nextDue = parseDate(data.nextDueDate);
 
   await prisma.recurringRule.update({
@@ -448,7 +527,9 @@ export async function updateRecurringRule(id: string, formData: FormData): Promi
 
 export async function toggleRecurringRule(id: string): Promise<ActionResult> {
   const userId = await getCurrentUserId();
-  const existing = await prisma.recurringRule.findFirst({ where: { id, userId } });
+  const existing = await prisma.recurringRule.findFirst({
+    where: { id, userId },
+  });
   if (!existing) return fail("Recurring rule not found");
 
   await prisma.recurringRule.update({
@@ -462,7 +543,9 @@ export async function toggleRecurringRule(id: string): Promise<ActionResult> {
 
 export async function deleteRecurringRule(id: string): Promise<ActionResult> {
   const userId = await getCurrentUserId();
-  const existing = await prisma.recurringRule.findFirst({ where: { id, userId } });
+  const existing = await prisma.recurringRule.findFirst({
+    where: { id, userId },
+  });
   if (!existing) return fail("Recurring rule not found");
 
   await prisma.recurringRule.delete({ where: { id } });
@@ -485,7 +568,8 @@ export async function postRecurringRule(
   let amount = rule.amount;
   if (overrideAmount) {
     const cleaned = Number(overrideAmount.replace(/[₹,\s]/g, ""));
-    if (!Number.isFinite(cleaned) || cleaned <= 0) return fail("Enter a valid amount");
+    if (!Number.isFinite(cleaned) || cleaned <= 0)
+      return fail("Enter a valid amount");
     amount = BigInt(Math.round(cleaned * 100));
   }
 
@@ -555,7 +639,12 @@ export async function unpostRecurringRule(id: string): Promise<ActionResult> {
     prisma.transaction.delete({ where: { id: posted.id } }),
     prisma.recurringRule.update({
       where: { id: rule.id },
-      data: { nextDueDate: posted.date, lastPostedAt: previous?.date ?? null },
+      data: {
+        nextDueDate: posted.date,
+        lastPostedAt: previous?.date ?? null,
+        // Otherwise auto-post would immediately re-record the payment just undone.
+        ...(rule.autoPost && { autoPost: false }),
+      },
     }),
   ]);
 
@@ -566,4 +655,3 @@ export async function unpostRecurringRule(id: string): Promise<ActionResult> {
 /* ------------------------------------------------------------------ */
 /* Settings                                                            */
 /* ------------------------------------------------------------------ */
-

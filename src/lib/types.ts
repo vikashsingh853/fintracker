@@ -24,7 +24,13 @@ export const BUCKETS = [
 ] as const;
 export type Bucket = (typeof BUCKETS)[number];
 
-export const FREQUENCIES = ["DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"] as const;
+export const FREQUENCIES = [
+  "DAILY",
+  "WEEKLY",
+  "MONTHLY",
+  "QUARTERLY",
+  "YEARLY",
+] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
 
 export const PAYMENT_METHODS = [
@@ -62,7 +68,6 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   AUTO_DEBIT: "Auto debit",
   OTHER: "Other",
 };
-
 
 /** Liabilities are subtracted from net worth instead of added. */
 export const LIABILITY_ACCOUNT_TYPES: AccountType[] = ["CREDIT_CARD", "LOAN"];
@@ -107,7 +112,12 @@ export interface TransactionDTO {
   paymentMethod: PaymentMethod;
   excludeFromBudget: boolean;
   account: { id: string; name: string; type: AccountType; color: string };
-  toAccount: { id: string; name: string; type: AccountType; color: string } | null;
+  toAccount: {
+    id: string;
+    name: string;
+    type: AccountType;
+    color: string;
+  } | null;
   category: { id: string; name: string; icon: string; color: string } | null;
 }
 
@@ -214,8 +224,18 @@ export interface KhataEntryDTO {
   amount: number;
   date: string;
   note: string | null;
+  dueDate: string | null;
   /** Party balance immediately after this entry, oldest-to-newest. */
   runningBalance: number;
+}
+
+export interface DueKhataItem {
+  entryId: string;
+  partyId: string;
+  partyName: string;
+  type: KhataEntryType;
+  amount: number;
+  dueDate: string;
 }
 
 export interface KhataSummary {
@@ -223,4 +243,79 @@ export interface KhataSummary {
   toGive: number;
   net: number;
   partyCount: number;
+}
+
+/* ------------------------------------------------------------------ */
+/* Groups (shared expenses)                                            */
+/* ------------------------------------------------------------------ */
+
+export const SPLIT_TYPES = ["EQUAL", "EXACT", "PERCENT"] as const;
+export type SplitType = (typeof SPLIT_TYPES)[number];
+
+export const SPLIT_TYPE_LABELS: Record<SplitType, string> = {
+  EQUAL: "Equally",
+  EXACT: "Exact amounts",
+  PERCENT: "Percentages",
+};
+
+export interface GroupMemberDTO {
+  id: string;
+  name: string;
+  email: string;
+  role: "OWNER" | "MEMBER";
+  /** Invited but hasn't accepted yet. */
+  isPending: boolean;
+  isYou: boolean;
+  /** Paise. Positive: the group owes them. Negative: they owe the group. */
+  balance: number;
+}
+
+export interface GroupSummaryDTO {
+  id: string;
+  name: string;
+  memberCount: number;
+  pendingCount: number;
+  yourBalance: number;
+  lastActivity: string;
+}
+
+export interface GroupDebt {
+  fromId: string;
+  fromName: string;
+  toId: string;
+  toName: string;
+  amount: number;
+}
+
+export type GroupActivity =
+  | {
+      kind: "EXPENSE";
+      id: string;
+      date: string;
+      description: string;
+      amount: number;
+      splitType: SplitType;
+      paidBy: { id: string; name: string };
+      shares: Array<{ memberId: string; name: string; amount: number }>;
+      /** Your net effect: positive you lent, negative you borrowed. */
+      yourNet: number;
+    }
+  | {
+      kind: "SETTLEMENT";
+      id: string;
+      date: string;
+      amount: number;
+      from: { id: string; name: string };
+      to: { id: string; name: string };
+    };
+
+export interface GroupDetailDTO {
+  id: string;
+  name: string;
+  isOwner: boolean;
+  youMemberId: string;
+  members: GroupMemberDTO[];
+  debts: GroupDebt[];
+  activity: GroupActivity[];
+  totalSpent: number;
 }

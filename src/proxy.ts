@@ -22,7 +22,10 @@ export default function proxy(request: NextRequest) {
   if (!hasSession && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.search = "";
+    url.search =
+      pathname === "/"
+        ? ""
+        : `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
     return NextResponse.redirect(url);
   }
 
@@ -31,5 +34,7 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   // Everything except Next internals, the manifest, icons and other static files.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons|sw.js).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons|sw.js).*)",
+  ],
 };

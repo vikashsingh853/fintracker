@@ -12,6 +12,7 @@ import {
 } from "./auth";
 import { prisma } from "./prisma";
 import { provisionNewUser } from "./provision";
+import { safeNext } from "./redirect";
 
 export interface AuthResult {
   ok: boolean;
@@ -50,7 +51,8 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   if (!phone) return fail("Enter a valid 10-digit Indian mobile number");
 
   const existing = await prisma.user.findUnique({ where: { phone } });
-  if (existing) return fail("An account with this mobile number already exists");
+  if (existing)
+    return fail("An account with this mobile number already exists");
 
   const passwordHash = await hashPassword(password);
 
@@ -64,7 +66,7 @@ export async function signUp(formData: FormData): Promise<AuthResult> {
   const userAgent = (await headers()).get("user-agent") ?? undefined;
   await createSession(user.id, userAgent);
 
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function signIn(formData: FormData): Promise<AuthResult> {
@@ -86,7 +88,7 @@ export async function signIn(formData: FormData): Promise<AuthResult> {
   const userAgent = (await headers()).get("user-agent") ?? undefined;
   await createSession(user.id, userAgent);
 
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function signOut(): Promise<void> {

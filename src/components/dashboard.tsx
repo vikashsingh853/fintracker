@@ -14,7 +14,13 @@ import { formatDay } from "@/lib/dates";
 import { Card, CardHeader, Progress } from "./ui";
 
 /** The hero number: what's genuinely free to spend today. */
-export function SafeToSpendHero({ safe, name }: { safe: SafeToSpend; name: string }) {
+export function SafeToSpendHero({
+  safe,
+  name,
+}: {
+  safe: SafeToSpend;
+  name: string;
+}) {
   return (
     <div className="animate-rise overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-600 to-indigo-500 p-5 text-white shadow-lg shadow-brand-600/20 sm:p-6">
       <p className="text-xs font-medium uppercase tracking-wider text-white/70">
@@ -39,21 +45,27 @@ export function SafeToSpendHero({ safe, name }: { safe: SafeToSpend; name: strin
             title={formatINRCompact(safe.perDay)}
             className="tabular mt-2 flex items-baseline gap-1 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl"
           >
-            <span className="min-w-0 truncate">{formatINRAdaptive(safe.perDay)}</span>
+            <span className="min-w-0 truncate">
+              {formatINRAdaptive(safe.perDay)}
+            </span>
             <span className="shrink-0 text-base font-medium text-white/70 sm:text-lg">
               /day
             </span>
           </p>
           <p className="mt-1.5 text-sm text-white/85">
-            {formatINRAdaptive(safe.safeTotal)} left for the next {safe.daysRemaining} day
-            {safe.daysRemaining === 1 ? "" : "s"}, after bills and planned savings.
+            {formatINRAdaptive(safe.safeTotal)} left for the next{" "}
+            {safe.daysRemaining} day
+            {safe.daysRemaining === 1 ? "" : "s"}, after bills and planned
+            savings.
           </p>
         </>
       )}
 
       <dl className="mt-5 grid grid-cols-3 gap-2 border-t border-white/20 pt-4 text-center sm:gap-3">
         <div className="min-w-0">
-          <dt className="truncate text-[10px] uppercase tracking-wide text-white/65">Liquid</dt>
+          <dt className="truncate text-[10px] uppercase tracking-wide text-white/65">
+            Liquid
+          </dt>
           <dd
             title={formatINRCompact(safe.liquidBalance)}
             className="tabular mt-0.5 truncate text-xs font-semibold sm:text-sm"
@@ -89,10 +101,26 @@ export function SafeToSpendHero({ safe, name }: { safe: SafeToSpend; name: strin
 }
 
 const TONE_STYLES = {
-  positive: { wrap: "border-emerald-200 bg-emerald-50", icon: "text-emerald-600", Icon: CheckCircle2 },
-  warning: { wrap: "border-amber-200 bg-amber-50", icon: "text-amber-600", Icon: AlertTriangle },
-  critical: { wrap: "border-rose-200 bg-rose-50", icon: "text-rose-600", Icon: AlertTriangle },
-  neutral: { wrap: "border-brand-100 bg-brand-50", icon: "text-brand-600", Icon: Info },
+  positive: {
+    wrap: "border-emerald-200 bg-emerald-50",
+    icon: "text-emerald-600",
+    Icon: CheckCircle2,
+  },
+  warning: {
+    wrap: "border-amber-200 bg-amber-50",
+    icon: "text-amber-600",
+    Icon: AlertTriangle,
+  },
+  critical: {
+    wrap: "border-rose-200 bg-rose-50",
+    icon: "text-rose-600",
+    Icon: AlertTriangle,
+  },
+  neutral: {
+    wrap: "border-brand-100 bg-brand-50",
+    icon: "text-brand-600",
+    Icon: Info,
+  },
 } as const;
 
 export function InsightList({ insights }: { insights: Insight[] }) {
@@ -113,10 +141,17 @@ export function InsightList({ insights }: { insights: Insight[] }) {
               key={insight.id}
               className={clsx("flex gap-3 rounded-xl border p-3", tone.wrap)}
             >
-              <tone.Icon size={16} className={clsx("mt-0.5 shrink-0", tone.icon)} />
-              <div>
-                <p className="text-sm font-medium text-ink-900">{insight.title}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-ink-600">{insight.detail}</p>
+              <tone.Icon
+                size={16}
+                className={clsx("mt-0.5 shrink-0", tone.icon)}
+              />
+              <div className="min-w-0 break-words">
+                <p className="text-sm font-medium text-ink-900">
+                  {insight.title}
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-ink-600">
+                  {insight.detail}
+                </p>
               </div>
             </li>
           );
@@ -161,7 +196,9 @@ export function SalaryCard({
         </p>
       </div>
 
-      <p className="mb-3 text-xs font-medium text-ink-600">Recommended allocation</p>
+      <p className="mb-3 text-xs font-medium text-ink-600">
+        Recommended allocation
+      </p>
       <ul className="space-y-3">
         {salary.allocations.map((a) => (
           <li key={a.bucket}>
@@ -173,7 +210,9 @@ export function SalaryCard({
                   aria-hidden
                 />
                 <span className="truncate">{a.label}</span>
-                <span className="shrink-0 text-[11px] text-ink-400">{a.percent}%</span>
+                <span className="shrink-0 text-[11px] text-ink-400">
+                  {a.percent}%
+                </span>
               </span>
               <span
                 title={formatINRCompact(a.amount)}
@@ -188,8 +227,8 @@ export function SalaryCard({
       </ul>
 
       <p className="mt-4 text-[11px] leading-relaxed text-ink-500">
-        A starting split you can tune. Editable allocations and auto-transfers arrive with
-        Goals in Phase 2.
+        A starting split you can tune. Editable allocations and auto-transfers
+        arrive with Goals in Phase 2.
       </p>
     </Card>
   );

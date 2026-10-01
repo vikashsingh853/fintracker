@@ -34,12 +34,18 @@ const paiseFromRupees = z
       return z.NEVER;
     }
     if (parsed <= 0) {
-      ctx.addIssue({ code: "custom", message: "Amount must be greater than zero" });
+      ctx.addIssue({
+        code: "custom",
+        message: "Amount must be greater than zero",
+      });
       return z.NEVER;
     }
     const paise = Math.round(parsed * 100);
     if (paise > MAX_AMOUNT_PAISE) {
-      ctx.addIssue({ code: "custom", message: "That amount looks too large — please check it" });
+      ctx.addIssue({
+        code: "custom",
+        message: "That amount looks too large — please check it",
+      });
       return z.NEVER;
     }
     return BigInt(paise);
@@ -73,7 +79,8 @@ export async function createParty(formData: FormData): Promise<ActionResult> {
   let phone: string | null = null;
   if (parsed.data.phone?.trim()) {
     phone = normalisePhone(parsed.data.phone);
-    if (!phone) return fail("Enter a valid 10-digit mobile number, or leave it blank");
+    if (!phone)
+      return fail("Enter a valid 10-digit mobile number, or leave it blank");
   }
 
   const duplicate = await prisma.party.findFirst({
@@ -89,7 +96,10 @@ export async function createParty(formData: FormData): Promise<ActionResult> {
   return { ok: true, id: party.id };
 }
 
-export async function updateParty(id: string, formData: FormData): Promise<ActionResult> {
+export async function updateParty(
+  id: string,
+  formData: FormData,
+): Promise<ActionResult> {
   const parsed = partySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
@@ -100,7 +110,8 @@ export async function updateParty(id: string, formData: FormData): Promise<Actio
   let phone: string | null = null;
   if (parsed.data.phone?.trim()) {
     phone = normalisePhone(parsed.data.phone);
-    if (!phone) return fail("Enter a valid 10-digit mobile number, or leave it blank");
+    if (!phone)
+      return fail("Enter a valid 10-digit mobile number, or leave it blank");
   }
 
   await prisma.party.update({
@@ -138,28 +149,44 @@ const entrySchema = z.object({
   type: z.enum(KHATA_ENTRY_TYPES),
   amount: paiseFromRupees,
   date: z.string().min(1, "Pick a date"),
+  dueDate: z.string().optional(),
   note: z.string().max(200).optional(),
 });
 
-export async function createKhataEntry(formData: FormData): Promise<ActionResult> {
+export async function createKhataEntry(
+  formData: FormData,
+): Promise<ActionResult> {
   const parsed = entrySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   const userId = await getCurrentUserId();
-  const { partyId, type, amount, date, note } = parsed.data;
+  const { partyId, type, amount, date, dueDate, note } = parsed.data;
 
-  const party = await prisma.party.findFirst({ where: { id: partyId, userId } });
+  const party = await prisma.party.findFirst({
+    where: { id: partyId, userId },
+  });
   if (!party) return fail("Contact not found");
 
   await prisma.khataEntry.create({
-    data: { userId, partyId, type, amount, date: parseDate(date), note: note || null },
+    data: {
+      userId,
+      partyId,
+      type,
+      amount,
+      date: parseDate(date),
+      dueDate: dueDate ? parseDate(dueDate) : null,
+      note: note || null,
+    },
   });
 
   revalidateKhata();
   return { ok: true };
 }
 
-export async function updateKhataEntry(id: string, formData: FormData): Promise<ActionResult> {
+export async function updateKhataEntry(
+  id: string,
+  formData: FormData,
+): Promise<ActionResult> {
   const parsed = entrySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
@@ -173,6 +200,7 @@ export async function updateKhataEntry(id: string, formData: FormData): Promise<
       type: parsed.data.type,
       amount: parsed.data.amount,
       date: parseDate(parsed.data.date),
+      dueDate: parsed.data.dueDate ? parseDate(parsed.data.dueDate) : null,
       note: parsed.data.note || null,
     },
   });
@@ -195,7 +223,9 @@ export async function deleteKhataEntry(id: string): Promise<ActionResult> {
 /** Records a payment that clears the whole outstanding balance. */
 export async function settleParty(partyId: string): Promise<ActionResult> {
   const userId = await getCurrentUserId();
-  const party = await prisma.party.findFirst({ where: { id: partyId, userId } });
+  const party = await prisma.party.findFirst({
+    where: { id: partyId, userId },
+  });
   if (!party) return fail("Contact not found");
 
   const totals = await prisma.khataEntry.groupBy({

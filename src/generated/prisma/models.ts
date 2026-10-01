@@ -9,6 +9,11 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User'
+export type * from './models/Group'
+export type * from './models/GroupMember'
+export type * from './models/GroupExpense'
+export type * from './models/GroupExpenseShare'
+export type * from './models/GroupSettlement'
 export type * from './models/Party'
 export type * from './models/KhataEntry'
 export type * from './models/Session'

@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <Sidebar userName={user.name} userPhone={user.phone} />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 overflow-x-clip">
         <main className="mx-auto w-full max-w-3xl px-4 pb-28 pt-4 md:max-w-4xl md:px-8 md:pb-16 md:pt-6">
           <MobileHeader userName={user.name} userPhone={user.phone} />
           {children}

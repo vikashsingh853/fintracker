@@ -1,11 +1,24 @@
 import Link from "next/link";
-import { ArrowRight, CalendarClock } from "lucide-react";
-import { InsightList, SafeToSpendHero, SalaryCard } from "@/components/dashboard";
+import { differenceInCalendarDays } from "date-fns";
+import { ArrowRight, BookUser, CalendarClock } from "lucide-react";
+import {
+  InsightList,
+  SafeToSpendHero,
+  SalaryCard,
+} from "@/components/dashboard";
 import { QuickAdd } from "@/components/quick-add";
 import { TransactionRow } from "@/components/transaction-row";
-import { Badge, Card, CardHeader, EmptyState, Progress, StatTile } from "@/components/ui";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  Progress,
+  StatTile,
+} from "@/components/ui";
 import { formatShortDay, periodKey, periodLabel } from "@/lib/dates";
 import { getInsights } from "@/lib/insights";
+import { getDueKhataEntries, getKhataSummary } from "@/lib/khata";
 import { formatINRAdaptive, formatINRCompact } from "@/lib/money";
 import {
   computeNetWorth,
@@ -23,23 +36,42 @@ import { getCurrentUser } from "@/lib/session";
 export default async function DashboardPage() {
   const period = periodKey();
 
-  const [user, accounts, categories, summary, safe, insights, salary, upcoming, transactions, budgets] =
-    await Promise.all([
-      getCurrentUser(),
-      getAccounts(),
-      getCategories(),
-      getMonthSummary(period),
-      getSafeToSpend(),
-      getInsights(),
-      getSalaryIntelligence(),
-      getUpcoming(),
-      getTransactions({ take: 6 }),
-      getBudgets(period),
-    ]);
+  const [
+    user,
+    accounts,
+    categories,
+    summary,
+    safe,
+    insights,
+    salary,
+    upcoming,
+    transactions,
+    budgets,
+    khataDue,
+    khata,
+  ] = await Promise.all([
+    getCurrentUser(),
+    getAccounts(),
+    getCategories(),
+    getMonthSummary(period),
+    getSafeToSpend(),
+    getInsights(),
+    getSalaryIntelligence(),
+    getUpcoming(),
+    getTransactions({ take: 6 }),
+    getBudgets(period),
+    getDueKhataEntries(5),
+    getKhataSummary(),
+  ]);
 
   const netWorth = computeNetWorth(accounts);
-  const billsThisWeek = upcoming.filter((u) => u.daysUntil <= 7 && u.type !== "INCOME");
-  const topBudgets = [...budgets].sort((a, b) => b.progress - a.progress).slice(0, 4);
+  const billsThisWeek = upcoming.filter(
+    (u) => u.daysUntil <= 7 && u.type !== "INCOME",
+  );
+  const topBudgets = [...budgets]
+    .sort((a, b) => b.progress - a.progress)
+    .slice(0, 4);
+  const today = new Date();
 
   return (
     <div className="space-y-5">
@@ -86,7 +118,134 @@ export default async function DashboardPage() {
 
       <InsightList insights={insights} />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <Card>
+        <CardHeader
+          title="Khata"
+          subtitle={
+            khataDue.length > 0
+              ? `${khataDue.length} due payment${khataDue.length === 1 ? "" : "s"}`
+              : khata.partyCount > 0
+                ? "Nothing due"
+                : "Track udhaar you give and take"
+          }
+          action={
+            <Link
+              href="/khata"
+              className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700"
+            >
+              View all
+            </Link>
+          }
+        />
+
+        {khata.partyCount === 0 ? (
+          <EmptyState
+            title="No khata yet"
+            description="Add the people and shops you lend to or borrow from."
+            action={
+              <Link
+                href="/khata"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700"
+              >
+                <BookUser size={14} /> Open khata
+              </Link>
+            }
+          />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="min-w-0 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="truncate text-[11px] font-medium uppercase tracking-wide text-emerald-700">
+                  You will get
+                </p>
+                <p
+                  title={formatINRCompact(khata.toGet)}
+                  className="tabular mt-0.5 truncate text-base font-semibold text-emerald-700 sm:text-lg"
+                >
+                  {formatINRAdaptive(khata.toGet)}
+                </p>
+              </div>
+              <div className="min-w-0 rounded-xl border border-rose-200 bg-rose-50 p-3">
+                <p className="truncate text-[11px] font-medium uppercase tracking-wide text-rose-700">
+                  You will give
+                </p>
+                <p
+                  title={formatINRCompact(khata.toGive)}
+                  className="tabular mt-0.5 truncate text-base font-semibold text-rose-700 sm:text-lg"
+                >
+                  {formatINRAdaptive(khata.toGive)}
+                </p>
+              </div>
+            </div>
+
+            {khataDue.length > 0 && (
+              <ul className="mt-3 divide-y divide-ink-100">
+                {khataDue.map((item) => {
+                  const youGet = item.type === "GAVE";
+                  const days = differenceInCalendarDays(
+                    new Date(item.dueDate),
+                    today,
+                  );
+                  const dueLabel =
+                    days < 0
+                      ? `Overdue ${-days} day${days === -1 ? "" : "s"}`
+                      : days === 0
+                        ? "Due today"
+                        : days === 1
+                          ? "Due tomorrow"
+                          : `Due ${formatShortDay(new Date(item.dueDate))}`;
+                  return (
+                    <li key={item.entryId}>
+                      <Link
+                        href={`/khata/${item.partyId}`}
+                        className="flex items-center gap-3 py-2.5 transition hover:opacity-80"
+                      >
+                        <span
+                          aria-hidden
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700"
+                        >
+                          {item.partyName.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-ink-900">
+                            {item.partyName}
+                          </span>
+                          <span
+                            className={
+                              days < 0
+                                ? "block truncate text-[11px] font-medium text-rose-600"
+                                : "block truncate text-[11px] text-ink-500"
+                            }
+                          >
+                            {dueLabel}
+                          </span>
+                        </span>
+                        <span className="max-w-[45%] shrink-0 text-right">
+                          <span
+                            title={formatINRCompact(item.amount)}
+                            className={
+                              youGet
+                                ? "tabular block truncate text-sm font-semibold text-emerald-700"
+                                : "tabular block truncate text-sm font-semibold text-rose-700"
+                            }
+                          >
+                            {formatINRAdaptive(item.amount)}
+                          </span>
+                          <span className="block text-[11px] text-ink-400">
+                            {youGet ? "to get" : "to give"}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </>
+        )}
+      </Card>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {salary && <SalaryCard salary={salary} />}
 
         <Card>
@@ -153,7 +312,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader
             title="Budget pace"
@@ -190,7 +349,9 @@ export default async function DashboardPage() {
                       </span>
                       <span className="tabular shrink-0 text-xs text-ink-600">
                         {formatINRAdaptive(b.spent)}{" "}
-                        <span className="text-ink-400">/ {formatINRAdaptive(b.amount)}</span>
+                        <span className="text-ink-400">
+                          / {formatINRAdaptive(b.amount)}
+                        </span>
                       </span>
                     </div>
                     <Progress
@@ -248,10 +409,16 @@ export default async function DashboardPage() {
           {formatINRAdaptive(netWorth.netWorth)}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Badge tone="neutral">Liquid {formatINRAdaptive(netWorth.liquid)}</Badge>
-          <Badge tone="brand">Investments {formatINRAdaptive(netWorth.investments)}</Badge>
+          <Badge tone="neutral">
+            Liquid {formatINRAdaptive(netWorth.liquid)}
+          </Badge>
+          <Badge tone="brand">
+            Investments {formatINRAdaptive(netWorth.investments)}
+          </Badge>
           {netWorth.liabilities > 0 && (
-            <Badge tone="bad">Owed {formatINRAdaptive(netWorth.liabilities)}</Badge>
+            <Badge tone="bad">
+              Owed {formatINRAdaptive(netWorth.liabilities)}
+            </Badge>
           )}
         </div>
       </Card>

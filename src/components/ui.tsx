@@ -34,7 +34,7 @@ export function CardHeader({
 }) {
   return (
     <header className="mb-4 flex items-start justify-between gap-3">
-      <div>
+      <div className="min-w-0">
         <h2 className="text-sm font-semibold text-ink-900">{title}</h2>
         {subtitle && <p className="mt-0.5 text-xs text-ink-500">{subtitle}</p>}
       </div>
@@ -54,8 +54,10 @@ export function PageHeader({
 }) {
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight text-ink-900 sm:text-2xl">{title}</h1>
+      <div className="min-w-0">
+        <h1 className="text-xl font-semibold tracking-tight text-ink-900 sm:text-2xl">
+          {title}
+        </h1>
         {subtitle && <p className="mt-1 text-sm text-ink-500">{subtitle}</p>}
       </div>
       {action}
@@ -99,14 +101,20 @@ export function Progress({
 
   return (
     <div
-      className={clsx("h-2 w-full overflow-hidden rounded-full bg-ink-200", className)}
+      className={clsx(
+        "h-2 w-full overflow-hidden rounded-full bg-ink-200",
+        className,
+      )}
       role="progressbar"
       aria-valuenow={Math.min(100, Math.max(0, value))}
       aria-valuemin={0}
       aria-valuemax={100}
     >
       <div
-        className={clsx("h-full rounded-full transition-all duration-500", tones[tone])}
+        className={clsx(
+          "h-full rounded-full transition-all duration-500",
+          tones[tone],
+        )}
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>
@@ -174,7 +182,9 @@ export function StatTile({
       >
         {value}
       </p>
-      {hint && <p className="mt-0.5 truncate text-[11px] text-ink-500">{hint}</p>}
+      {hint && (
+        <p className="mt-0.5 truncate text-[11px] text-ink-500">{hint}</p>
+      )}
     </div>
   );
 }

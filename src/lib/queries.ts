@@ -3,6 +3,7 @@ import { endOfMonth, startOfDay } from "date-fns";
 import { prisma } from "./prisma";
 import { getCurrentUser, getCurrentUserId } from "./session";
 import { toNumber } from "./money";
+import { postDueAutoRules } from "./recurring-sync";
 import {
   daysRemainingInMonth,
   monthRange,
@@ -25,6 +26,22 @@ import {
   type UpcomingItem,
 } from "./types";
 
+/**
+ * User id for ledger reads, after materialising any auto-post rules that have
+ * fallen due. Runs once per request; a failure here must not break the page.
+ */
+const getLedgerUserId = cache(
+  async function getLedgerUserId(): Promise<string> {
+    const userId = await getCurrentUserId();
+    try {
+      await postDueAutoRules(userId);
+    } catch (error) {
+      console.error("Auto-posting recurring rules failed", error);
+    }
+    return userId;
+  },
+);
+
 /* ------------------------------------------------------------------ */
 /* Accounts                                                            */
 /* ------------------------------------------------------------------ */
@@ -38,8 +55,10 @@ import {
  * Credit cards start at 0 and go negative as spend accrues, so the magnitude
  * of a negative balance is the outstanding amount.
  */
-export const getAccounts = cache(async function getAccounts(includeArchived = false): Promise<AccountDTO[]> {
-  const userId = await getCurrentUserId();
+export const getAccounts = cache(async function getAccounts(
+  includeArchived = false,
+): Promise<AccountDTO[]> {
+  const userId = await getLedgerUserId();
 
   const [accounts, grouped, transfersIn] = await Promise.all([
     prisma.account.findMany({
@@ -83,7 +102,9 @@ export const getAccounts = cache(async function getAccounts(includeArchived = fa
     type: a.type as AccountType,
     openingBalance: toNumber(a.openingBalance),
     balance:
-      toNumber(a.openingBalance) + (inflow.get(a.id) ?? 0) - (outflow.get(a.id) ?? 0),
+      toNumber(a.openingBalance) +
+      (inflow.get(a.id) ?? 0) -
+      (outflow.get(a.id) ?? 0),
     creditLimit: a.creditLimit == null ? null : toNumber(a.creditLimit),
     billingCycleDay: a.billingCycleDay,
     dueDay: a.dueDay,
@@ -118,14 +139,21 @@ export function computeNetWorth(accounts: AccountDTO[]): NetWorth {
     }
   }
 
-  return { netWorth: liquid + investments - liabilities, liquid, investments, liabilities };
+  return {
+    netWorth: liquid + investments - liabilities,
+    liquid,
+    investments,
+    liabilities,
+  };
 }
 
 /* ------------------------------------------------------------------ */
 /* Categories                                                          */
 /* ------------------------------------------------------------------ */
 
-export const getCategories = cache(async function getCategories(kind?: "INCOME" | "EXPENSE"): Promise<CategoryDTO[]> {
+export const getCategories = cache(async function getCategories(
+  kind?: "INCOME" | "EXPENSE",
+): Promise<CategoryDTO[]> {
   const userId = await getCurrentUserId();
   const categories = await prisma.category.findMany({
     where: { userId, ...(kind ? { kind } : {}) },
@@ -147,8 +175,18 @@ export const getCategories = cache(async function getCategories(kind?: "INCOME" 
 /* Transactions                                                        */
 /* ------------------------------------------------------------------ */
 
-const accountSelect = { id: true, name: true, type: true, color: true } as const;
-const categorySelect = { id: true, name: true, icon: true, color: true } as const;
+const accountSelect = {
+  id: true,
+  name: true,
+  type: true,
+  color: true,
+} as const;
+const categorySelect = {
+  id: true,
+  name: true,
+  icon: true,
+  color: true,
+} as const;
 
 export interface TransactionFilters {
   period?: string;
@@ -159,8 +197,10 @@ export interface TransactionFilters {
   take?: number;
 }
 
-export const getTransactions = cache(async function getTransactions(filters: TransactionFilters = {}): Promise<TransactionDTO[]> {
-  const userId = await getCurrentUserId();
+export const getTransactions = cache(async function getTransactions(
+  filters: TransactionFilters = {},
+): Promise<TransactionDTO[]> {
+  const userId = await getLedgerUserId();
   const { period, type, accountId, categoryId, search, take = 100 } = filters;
 
   const dateFilter = period ? monthRange(period) : null;
@@ -171,7 +211,9 @@ export const getTransactions = cache(async function getTransactions(filters: Tra
       ...(type ? { type } : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(accountId ? { OR: [{ accountId }, { toAccountId: accountId }] } : {}),
-      ...(dateFilter ? { date: { gte: dateFilter.start, lte: dateFilter.end } } : {}),
+      ...(dateFilter
+        ? { date: { gte: dateFilter.start, lte: dateFilter.end } }
+        : {}),
       ...(search
         ? {
             OR: [
@@ -208,13 +250,14 @@ export const getTransactions = cache(async function getTransactions(filters: Tra
   }));
 });
 
-
 /* ------------------------------------------------------------------ */
 /* Month summary                                                       */
 /* ------------------------------------------------------------------ */
 
-export const getMonthSummary = cache(async function getMonthSummary(period = periodKey()): Promise<MonthSummary> {
-  const userId = await getCurrentUserId();
+export const getMonthSummary = cache(async function getMonthSummary(
+  period = periodKey(),
+): Promise<MonthSummary> {
+  const userId = await getLedgerUserId();
   const { start, end } = monthRange(period);
 
   const grouped = await prisma.transaction.groupBy({
@@ -248,8 +291,10 @@ export interface CategorySpend {
   amount: number;
 }
 
-export const getSpendByCategory = cache(async function getSpendByCategory(period = periodKey()): Promise<CategorySpend[]> {
-  const userId = await getCurrentUserId();
+export const getSpendByCategory = cache(async function getSpendByCategory(
+  period = periodKey(),
+): Promise<CategorySpend[]> {
+  const userId = await getLedgerUserId();
   const { start, end } = monthRange(period);
 
   const grouped = await prisma.transaction.groupBy({
@@ -265,7 +310,10 @@ export const getSpendByCategory = cache(async function getSpendByCategory(period
   });
 
   const categories = await prisma.category.findMany({
-    where: { userId, id: { in: grouped.map((g) => g.categoryId!).filter(Boolean) } },
+    where: {
+      userId,
+      id: { in: grouped.map((g) => g.categoryId!).filter(Boolean) },
+    },
     select: categorySelect,
   });
   const byId = new Map(categories.map((c) => [c.id, c]));
@@ -288,8 +336,10 @@ export const getSpendByCategory = cache(async function getSpendByCategory(period
 /* Budgets                                                             */
 /* ------------------------------------------------------------------ */
 
-export const getBudgets = cache(async function getBudgets(period = periodKey()): Promise<BudgetDTO[]> {
-  const userId = await getCurrentUserId();
+export const getBudgets = cache(async function getBudgets(
+  period = periodKey(),
+): Promise<BudgetDTO[]> {
+  const userId = await getLedgerUserId();
   const { start, end } = monthRange(period);
 
   const [budgets, spendRows] = await Promise.all([
@@ -325,7 +375,8 @@ export const getBudgets = cache(async function getBudgets(period = periodKey()):
       amount,
       spent,
       remaining: amount - spent,
-      progress: amount > 0 ? Math.min(999, Math.round((spent / amount) * 100)) : 0,
+      progress:
+        amount > 0 ? Math.min(999, Math.round((spent / amount) * 100)) : 0,
       rollover: b.rollover,
       category: {
         id: b.category.id,
@@ -344,59 +395,63 @@ export const getBudgets = cache(async function getBudgets(period = periodKey()):
 /* Recurring rules & upcoming outflows                                 */
 /* ------------------------------------------------------------------ */
 
-export const getRecurringRules = cache(async function getRecurringRules(): Promise<RecurringRuleDTO[]> {
-  const userId = await getCurrentUserId();
-  const rules = await prisma.recurringRule.findMany({
-    where: { userId },
-    orderBy: [{ isActive: "desc" }, { nextDueDate: "asc" }],
-    include: {
-      account: { select: { id: true, name: true, color: true } },
-      toAccount: { select: { id: true, name: true, color: true } },
-      category: { select: categorySelect },
-      // Newest payment first so it can be undone.
-      transactions: {
-        orderBy: { date: "desc" },
-        take: 1,
-        select: { id: true, date: true, amount: true },
+export const getRecurringRules = cache(
+  async function getRecurringRules(): Promise<RecurringRuleDTO[]> {
+    const userId = await getLedgerUserId();
+    const rules = await prisma.recurringRule.findMany({
+      where: { userId },
+      orderBy: [{ isActive: "desc" }, { nextDueDate: "asc" }],
+      include: {
+        account: { select: { id: true, name: true, color: true } },
+        toAccount: { select: { id: true, name: true, color: true } },
+        category: { select: categorySelect },
+        // Newest payment first so it can be undone.
+        transactions: {
+          orderBy: { date: "desc" },
+          take: 1,
+          select: { id: true, date: true, amount: true },
+        },
       },
-    },
-  });
+    });
 
-  return rules.map((r) => {
-    const posted = r.transactions[0];
-    return {
-      id: r.id,
-      name: r.name,
-      type: r.type as TransactionType,
-      amount: toNumber(r.amount),
-      isVariable: r.isVariable,
-      frequency: r.frequency as Frequency,
-      interval: r.interval,
-      dayOfMonth: r.dayOfMonth,
-      weekday: r.weekday,
-      monthOfYear: r.monthOfYear,
-      nextDueDate: r.nextDueDate.toISOString(),
-      autoPost: r.autoPost,
-      isBill: r.isBill,
-      isActive: r.isActive,
-      merchant: r.merchant,
-      account: r.account,
-      toAccount: r.toAccount,
-      category: r.category,
-      lastPosted: posted
-        ? {
-            id: posted.id,
-            date: posted.date.toISOString(),
-            amount: toNumber(posted.amount),
-          }
-        : null,
-    };
-  });
-});
+    return rules.map((r) => {
+      const posted = r.transactions[0];
+      return {
+        id: r.id,
+        name: r.name,
+        type: r.type as TransactionType,
+        amount: toNumber(r.amount),
+        isVariable: r.isVariable,
+        frequency: r.frequency as Frequency,
+        interval: r.interval,
+        dayOfMonth: r.dayOfMonth,
+        weekday: r.weekday,
+        monthOfYear: r.monthOfYear,
+        nextDueDate: r.nextDueDate.toISOString(),
+        autoPost: r.autoPost,
+        isBill: r.isBill,
+        isActive: r.isActive,
+        merchant: r.merchant,
+        account: r.account,
+        toAccount: r.toAccount,
+        category: r.category,
+        lastPosted: posted
+          ? {
+              id: posted.id,
+              date: posted.date.toISOString(),
+              amount: toNumber(posted.amount),
+            }
+          : null,
+      };
+    });
+  },
+);
 
 /** Every scheduled occurrence between today and `until`, flattened and sorted. */
-export const getUpcoming = cache(async function getUpcoming(until?: Date): Promise<UpcomingItem[]> {
-  const userId = await getCurrentUserId();
+export const getUpcoming = cache(async function getUpcoming(
+  until?: Date,
+): Promise<UpcomingItem[]> {
+  const userId = await getLedgerUserId();
   const today = startOfDay(new Date());
   const horizon = until ?? endOfMonth(today);
 
@@ -460,76 +515,90 @@ export const getUpcoming = cache(async function getUpcoming(until?: Date): Promi
  * When budgets exist the result is capped by the remaining budget, so the
  * number never encourages spending past the user's own plan.
  */
-export const getSafeToSpend = cache(async function getSafeToSpend(): Promise<SafeToSpend> {
-  const userId = await getCurrentUserId();
-  const today = startOfDay(new Date());
-  const monthEnd = endOfMonth(today);
-  const period = periodKey(today);
+export const getSafeToSpend = cache(
+  async function getSafeToSpend(): Promise<SafeToSpend> {
+    const userId = await getLedgerUserId();
+    const today = startOfDay(new Date());
+    const monthEnd = endOfMonth(today);
+    const period = periodKey(today);
 
-  const [accounts, upcoming, budgets, goals] = await Promise.all([
-    getAccounts(),
-    getUpcoming(monthEnd),
-    getBudgets(period),
-    prisma.goal.findMany({
-      where: { userId, isArchived: false },
-      select: { monthlyContribution: true, accountId: true },
-    }),
-  ]);
+    const [accounts, upcoming, budgets, goals] = await Promise.all([
+      getAccounts(),
+      getUpcoming(monthEnd),
+      getBudgets(period),
+      prisma.goal.findMany({
+        where: { userId, isArchived: false },
+        select: { monthlyContribution: true, accountId: true },
+      }),
+    ]);
 
-  const liquidAccountIds = new Set(
-    accounts.filter((a) => a.isLiquid && !isLiability(a.type)).map((a) => a.id),
-  );
+    const liquidAccountIds = new Set(
+      accounts
+        .filter((a) => a.isLiquid && !isLiability(a.type))
+        .map((a) => a.id),
+    );
 
-  const liquidBalance = accounts
-    .filter((a) => liquidAccountIds.has(a.id))
-    .reduce((sum, a) => sum + a.balance, 0);
+    const liquidBalance = accounts
+      .filter((a) => liquidAccountIds.has(a.id))
+      .reduce((sum, a) => sum + a.balance, 0);
 
-  // Only count money that actually leaves the liquid pool. A transfer between
-  // two liquid accounts moves money without reducing what's spendable.
-  const upcomingOutflows = upcoming.reduce((sum, item) => {
-    if (item.type === "INCOME") return sum;
-    if (!liquidAccountIds.has(item.accountId)) return sum;
-    return sum + item.amount;
-  }, 0);
+    // Only count money that actually leaves the liquid pool. A transfer between
+    // two liquid accounts moves money without reducing what's spendable.
+    const upcomingOutflows = upcoming.reduce((sum, item) => {
+      if (item.type === "INCOME") return sum;
+      if (!liquidAccountIds.has(item.accountId)) return sum;
+      return sum + item.amount;
+    }, 0);
 
-  const goalAccountIds = goals.map((g) => g.accountId).filter((id): id is string => !!id);
-  const plannedTotal = goals.reduce((sum, g) => sum + toNumber(g.monthlyContribution), 0);
+    const goalAccountIds = goals
+      .map((g) => g.accountId)
+      .filter((id): id is string => !!id);
+    const plannedTotal = goals.reduce(
+      (sum, g) => sum + toNumber(g.monthlyContribution),
+      0,
+    );
 
-  // Contributions already moved into goal-linked accounts this month.
-  const { start } = monthRange(period);
-  const fundedRows = goalAccountIds.length
-    ? await prisma.transaction.aggregate({
-        where: {
-          userId,
-          type: "TRANSFER",
-          toAccountId: { in: goalAccountIds },
-          date: { gte: start, lte: monthEnd },
-        },
-        _sum: { amount: true },
-      })
-    : null;
-  const alreadyFunded = toNumber(fundedRows?._sum.amount ?? 0n);
-  const plannedSavings = Math.max(0, plannedTotal - alreadyFunded);
+    // Contributions already moved into goal-linked accounts this month.
+    const { start } = monthRange(period);
+    const fundedRows = goalAccountIds.length
+      ? await prisma.transaction.aggregate({
+          where: {
+            userId,
+            type: "TRANSFER",
+            toAccountId: { in: goalAccountIds },
+            date: { gte: start, lte: monthEnd },
+          },
+          _sum: { amount: true },
+        })
+      : null;
+    const alreadyFunded = toNumber(fundedRows?._sum.amount ?? 0n);
+    const plannedSavings = Math.max(0, plannedTotal - alreadyFunded);
 
-  const remainingBudgeted = budgets.reduce((sum, b) => sum + Math.max(0, b.remaining), 0);
+    const remainingBudgeted = budgets.reduce(
+      (sum, b) => sum + Math.max(0, b.remaining),
+      0,
+    );
 
-  const liquidityBased = liquidBalance - upcomingOutflows - plannedSavings;
-  const safeTotal =
-    remainingBudgeted > 0 ? Math.min(liquidityBased, remainingBudgeted) : liquidityBased;
+    const liquidityBased = liquidBalance - upcomingOutflows - plannedSavings;
+    const safeTotal =
+      remainingBudgeted > 0
+        ? Math.min(liquidityBased, remainingBudgeted)
+        : liquidityBased;
 
-  const daysRemaining = daysRemainingInMonth(today);
+    const daysRemaining = daysRemainingInMonth(today);
 
-  return {
-    liquidBalance,
-    upcomingOutflows,
-    plannedSavings,
-    remainingBudgeted,
-    safeTotal,
-    perDay: Math.floor(Math.max(0, safeTotal) / daysRemaining),
-    daysRemaining,
-    isNegative: safeTotal < 0,
-  };
-});
+    return {
+      liquidBalance,
+      upcomingOutflows,
+      plannedSavings,
+      remainingBudgeted,
+      safeTotal,
+      perDay: Math.floor(Math.max(0, safeTotal) / daysRemaining),
+      daysRemaining,
+      isNegative: safeTotal < 0,
+    };
+  },
+);
 
 /* ------------------------------------------------------------------ */
 /* Salary Intelligence                                                 */
@@ -544,45 +613,61 @@ export interface SalaryAllocation {
 }
 
 /** Suggested split of the latest salary credit — the Salary Intelligence tile. */
-export const getSalaryIntelligence = cache(async function getSalaryIntelligence() {
-  const userId = await getCurrentUserId();
-  const user = await getCurrentUser();
-  const { start, end } = monthRange(periodKey());
+export const getSalaryIntelligence = cache(
+  async function getSalaryIntelligence() {
+    const userId = await getLedgerUserId();
+    const user = await getCurrentUser();
+    const { start, end } = monthRange(periodKey());
 
-  const latestSalary = await prisma.transaction.findFirst({
-    where: {
-      userId,
-      type: "INCOME",
-      date: { gte: start, lte: end },
-      category: { bucket: "INCOME" },
-    },
-    orderBy: { amount: "desc" },
-    include: { category: { select: { name: true } } },
-  });
+    const latestSalary = await prisma.transaction.findFirst({
+      where: {
+        userId,
+        type: "INCOME",
+        date: { gte: start, lte: end },
+        category: { bucket: "INCOME" },
+      },
+      orderBy: { amount: "desc" },
+      include: { category: { select: { name: true } } },
+    });
 
-  const amount = latestSalary ? toNumber(latestSalary.amount) : toNumber(user.monthlyIncome);
-  if (amount <= 0) return null;
+    const amount = latestSalary
+      ? toNumber(latestSalary.amount)
+      : toNumber(user.monthlyIncome);
+    if (amount <= 0) return null;
 
-  const split: Array<{ bucket: string; label: string; percent: number; color: string }> = [
-    { bucket: "NEEDS", label: "Needs", percent: 45, color: "#2563eb" },
-    { bucket: "LIFESTYLE", label: "Lifestyle", percent: 15, color: "#ea580c" },
-    { bucket: "SAVINGS", label: "Savings", percent: 20, color: "#16a34a" },
-    { bucket: "INVESTMENTS", label: "Investments", percent: 14, color: "#7c3aed" },
-    { bucket: "EMERGENCY", label: "Emergency", percent: 6, color: "#dc2626" },
-  ];
+    const split: Array<{
+      bucket: string;
+      label: string;
+      percent: number;
+      color: string;
+    }> = [
+      { bucket: "NEEDS", label: "Needs", percent: 45, color: "#2563eb" },
+      {
+        bucket: "LIFESTYLE",
+        label: "Lifestyle",
+        percent: 15,
+        color: "#ea580c",
+      },
+      { bucket: "SAVINGS", label: "Savings", percent: 20, color: "#16a34a" },
+      {
+        bucket: "INVESTMENTS",
+        label: "Investments",
+        percent: 14,
+        color: "#7c3aed",
+      },
+      { bucket: "EMERGENCY", label: "Emergency", percent: 6, color: "#dc2626" },
+    ];
 
-  const allocations: SalaryAllocation[] = split.map((s) => ({
-    ...s,
-    amount: Math.round((amount * s.percent) / 100),
-  }));
+    const allocations: SalaryAllocation[] = split.map((s) => ({
+      ...s,
+      amount: Math.round((amount * s.percent) / 100),
+    }));
 
-  return {
-    amount,
-    receivedOn: latestSalary?.date.toISOString() ?? null,
-    source: latestSalary?.merchant ?? "Expected salary",
-    allocations,
-  };
-});
-
-
-
+    return {
+      amount,
+      receivedOn: latestSalary?.date.toISOString() ?? null,
+      source: latestSalary?.merchant ?? "Expected salary",
+      allocations,
+    };
+  },
+);

@@ -22,7 +22,7 @@ export function QuickAdd({
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Add transaction"
-        className="fixed bottom-20 right-4 z-30 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition hover:bg-brand-700 active:scale-95 md:bottom-8 md:right-8"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-30 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 transition hover:bg-brand-700 active:scale-95 md:bottom-8 md:right-8"
       >
         <Plus size={24} strokeWidth={2.5} />
       </button>

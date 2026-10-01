@@ -6,10 +6,22 @@ import {
   MarkUnpaidButton,
   ToggleRecurringButton,
 } from "@/components/recurring-form";
-import { Badge, Card, CardHeader, EmptyState, PageHeader, StatTile } from "@/components/ui";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+  StatTile,
+} from "@/components/ui";
 import { formatDay, formatShortDay } from "@/lib/dates";
 import { formatINRAdaptive, formatINRCompact } from "@/lib/money";
-import { getAccounts, getCategories, getRecurringRules, getUpcoming } from "@/lib/queries";
+import {
+  getAccounts,
+  getCategories,
+  getRecurringRules,
+  getUpcoming,
+} from "@/lib/queries";
 import { FREQUENCY_LABELS } from "@/lib/types";
 
 export default async function RecurringPage() {
@@ -28,7 +40,9 @@ export default async function RecurringPage() {
     .reduce((sum, r) => sum + r.amount, 0);
 
   const subscriptions = active.filter((r) => r.isBill && r.type === "EXPENSE");
-  const dueThisWeek = upcoming.filter((u) => u.daysUntil <= 7 && u.type !== "INCOME");
+  const dueThisWeek = upcoming.filter(
+    (u) => u.daysUntil <= 7 && u.type !== "INCOME",
+  );
   const dueTotal = dueThisWeek.reduce((sum, u) => sum + u.amount, 0);
 
   // A rule is actionable once its due date has arrived.
@@ -44,7 +58,9 @@ export default async function RecurringPage() {
       <PageHeader
         title="Bills & Recurring"
         subtitle="Everything that repeats — this is what powers Safe to Spend."
-        action={<AddRecurringButton accounts={accounts} categories={categories} />}
+        action={
+          <AddRecurringButton accounts={accounts} categories={categories} />
+        }
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -80,7 +96,8 @@ export default async function RecurringPage() {
                     {rule.name}
                   </span>
                   <span className="block text-[11px] text-ink-500">
-                    Due {formatShortDay(new Date(rule.nextDueDate))} · {rule.account.name}
+                    Due {formatShortDay(new Date(rule.nextDueDate))} ·{" "}
+                    {rule.account.name}
                   </span>
                 </span>
                 <span
@@ -88,7 +105,9 @@ export default async function RecurringPage() {
                   className="tabular max-w-[40%] shrink-0 truncate text-sm font-semibold text-ink-900"
                 >
                   {formatINRAdaptive(rule.amount)}
-                  {rule.isVariable && <span className="text-[11px] text-ink-400"> approx</span>}
+                  {rule.isVariable && (
+                    <span className="text-[11px] text-ink-400"> approx</span>
+                  )}
                 </span>
                 <MarkPaidButton rule={rule} />
               </li>
@@ -118,7 +137,8 @@ export default async function RecurringPage() {
                   </span>
                   <span className="block truncate text-[11px] text-ink-500">
                     {formatINRAdaptive(rule.lastPosted!.amount)} on{" "}
-                    {formatShortDay(new Date(rule.lastPosted!.date))} · {rule.account.name}
+                    {formatShortDay(new Date(rule.lastPosted!.date))} ·{" "}
+                    {rule.account.name}
                   </span>
                 </span>
                 <MarkUnpaidButton rule={rule} />
@@ -179,7 +199,10 @@ export default async function RecurringPage() {
 
       <Card padded={false}>
         <div className="px-4 pt-4">
-          <CardHeader title="All recurring items" subtitle="Tap to edit any rule" />
+          <CardHeader
+            title="All recurring items"
+            subtitle="Tap to edit any rule"
+          />
         </div>
 
         {rules.length === 0 ? (
@@ -187,27 +210,44 @@ export default async function RecurringPage() {
             <EmptyState
               title="No recurring items yet"
               description="Add rent, Netflix, Jio, SIPs and EMIs to see what's coming."
-              action={<AddRecurringButton accounts={accounts} categories={categories} />}
+              action={
+                <AddRecurringButton
+                  accounts={accounts}
+                  categories={categories}
+                />
+              }
             />
           </div>
         ) : (
           <ul className="divide-y divide-ink-100 p-2">
             {[...active, ...paused].map((rule) => (
-              <li key={rule.id} className="flex items-center gap-2 py-1">
-                <EditRecurringButton rule={rule} accounts={accounts} categories={categories}>
-                  <div className="flex items-center gap-3 p-2">
+              <li
+                key={rule.id}
+                className="flex items-center gap-1 py-1 sm:gap-2"
+              >
+                <EditRecurringButton
+                  rule={rule}
+                  accounts={accounts}
+                  categories={categories}
+                >
+                  <div className="flex items-center gap-2.5 p-2 sm:gap-3">
                     <span
                       className="h-9 w-1 shrink-0 rounded-full"
-                      style={{ backgroundColor: rule.category?.color ?? rule.account.color }}
+                      style={{
+                        backgroundColor:
+                          rule.category?.color ?? rule.account.color,
+                      }}
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-ink-900">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 truncate text-sm font-medium text-ink-900">
                           {rule.name}
                         </span>
                         {rule.autoPost && <Badge tone="brand">Auto</Badge>}
-                        {rule.isVariable && <Badge tone="neutral">Variable</Badge>}
+                        {rule.isVariable && (
+                          <Badge tone="neutral">Variable</Badge>
+                        )}
                         {!rule.isActive && <Badge tone="neutral">Paused</Badge>}
                       </span>
                       <span className="block truncate text-[11px] text-ink-500">
@@ -225,7 +265,7 @@ export default async function RecurringPage() {
                   </div>
                 </EditRecurringButton>
                 <span className="flex shrink-0 items-center gap-1">
-                  <MarkUnpaidButton rule={rule} />
+                  <MarkUnpaidButton rule={rule} compact />
                   <ToggleRecurringButton rule={rule} />
                 </span>
               </li>

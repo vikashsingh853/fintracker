@@ -1,8 +1,24 @@
-import { AddBudgetButton, CopyBudgetsButton, EditBudgetButton } from "@/components/budget-form";
+import {
+  AddBudgetButton,
+  CopyBudgetsButton,
+  EditBudgetButton,
+} from "@/components/budget-form";
 import { MonthSwitcher } from "@/components/month-switcher";
 import { QuickAdd } from "@/components/quick-add";
-import { Badge, Card, CardHeader, EmptyState, PageHeader, Progress, StatTile } from "@/components/ui";
-import { daysElapsedInMonth, daysRemainingInMonth, periodKey } from "@/lib/dates";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+  Progress,
+  StatTile,
+} from "@/components/ui";
+import {
+  daysElapsedInMonth,
+  daysRemainingInMonth,
+  periodKey,
+} from "@/lib/dates";
 import { formatINRAdaptive, formatINRCompact } from "@/lib/money";
 import {
   getAccounts,
@@ -34,17 +50,22 @@ export default async function BudgetsPage({
   const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
   const totalSpent = budgets.reduce((sum, b) => sum + b.spent, 0);
   const totalRemaining = totalBudget - totalSpent;
-  const overallProgress = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+  const overallProgress =
+    totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
   const isCurrentMonth = period === periodKey();
   const elapsed = daysElapsedInMonth();
   const remainingDays = daysRemainingInMonth();
   const daysInMonth = elapsed + remainingDays - 1;
   // A month is "on pace" when spend tracks the fraction of days elapsed.
-  const expectedPace = isCurrentMonth ? Math.round((elapsed / daysInMonth) * 100) : 100;
+  const expectedPace = isCurrentMonth
+    ? Math.round((elapsed / daysInMonth) * 100)
+    : 100;
 
   const budgetedCategoryIds = new Set(budgets.map((b) => b.category.id));
-  const unbudgeted = spend.filter((s) => !budgetedCategoryIds.has(s.categoryId));
+  const unbudgeted = spend.filter(
+    (s) => !budgetedCategoryIds.has(s.categoryId),
+  );
 
   return (
     <div className="space-y-5">
@@ -52,7 +73,7 @@ export default async function BudgetsPage({
         title="Budgets"
         subtitle="Monthly limits per category. These sharpen your Safe to Spend number."
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <MonthSwitcher basePath="/budgets" period={period} />
             <AddBudgetButton period={period} categories={categories} />
           </div>
@@ -80,7 +101,9 @@ export default async function BudgetsPage({
         <StatTile
           label="Used"
           value={`${overallProgress}%`}
-          hint={isCurrentMonth ? `${expectedPace}% of the month gone` : undefined}
+          hint={
+            isCurrentMonth ? `${expectedPace}% of the month gone` : undefined
+          }
         />
       </div>
 
@@ -137,7 +160,10 @@ export default async function BudgetsPage({
                         className="tabular shrink-0 text-xs text-ink-600"
                       >
                         {formatINRAdaptive(budget.spent)}
-                        <span className="text-ink-400"> / {formatINRAdaptive(budget.amount)}</span>
+                        <span className="text-ink-400">
+                          {" "}
+                          / {formatINRAdaptive(budget.amount)}
+                        </span>
                       </span>
                     </div>
 
@@ -170,7 +196,10 @@ export default async function BudgetsPage({
           />
           <ul className="divide-y divide-ink-100">
             {unbudgeted.map((s) => (
-              <li key={s.categoryId} className="flex items-center justify-between gap-3 py-2.5">
+              <li
+                key={s.categoryId}
+                className="flex items-center justify-between gap-3 py-2.5"
+              >
                 <span className="flex min-w-0 items-center gap-2 text-sm text-ink-800">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"

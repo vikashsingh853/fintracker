@@ -1033,10 +1033,6 @@ export type RecurringRuleUpdateOneWithoutTransactionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.RecurringRuleUpdateToOneWithWhereWithoutTransactionsInput, Prisma.RecurringRuleUpdateWithoutTransactionsInput>, Prisma.RecurringRuleUncheckedUpdateWithoutTransactionsInput>
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type RecurringRuleCreateWithoutUserInput = {
   id?: string
   name: string

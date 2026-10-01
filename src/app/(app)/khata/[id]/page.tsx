@@ -14,7 +14,11 @@ import { formatINRAdaptive, formatINRCompact } from "@/lib/money";
 import { formatPhoneClient } from "@/lib/phone";
 import { PARTY_TYPE_LABELS } from "@/lib/types";
 
-export default async function PartyPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PartyPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const detail = await getPartyDetail(id);
   if (!detail) notFound();
@@ -82,7 +86,11 @@ export default async function PartyPage({ params }: { params: Promise<{ id: stri
                     : "text-[11px] font-medium uppercase tracking-wide text-rose-700"
               }
             >
-              {settled ? "All settled" : youGet ? "You will get" : "You will give"}
+              {settled
+                ? "All settled"
+                : youGet
+                  ? "You will get"
+                  : "You will give"}
             </p>
             <p
               title={formatINRCompact(Math.abs(party.balance))}
@@ -123,7 +131,8 @@ export default async function PartyPage({ params }: { params: Promise<{ id: stri
                   <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-2 py-2.5">
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-ink-900">
-                        {entry.note || (entry.type === "GAVE" ? "You gave" : "You got")}
+                        {entry.note ||
+                          (entry.type === "GAVE" ? "You gave" : "You got")}
                       </span>
                       <span className="block truncate text-[11px] text-ink-500">
                         {formatDay(new Date(entry.date))} · bal{" "}
@@ -134,19 +143,36 @@ export default async function PartyPage({ params }: { params: Promise<{ id: stri
                             ? "to get"
                             : "to give"}
                       </span>
+                      {entry.dueDate && party.balance !== 0 && (
+                        <span className="block truncate text-[11px] font-medium text-amber-700">
+                          Due {formatDay(new Date(entry.dueDate))}
+                        </span>
+                      )}
                     </span>
 
                     <span
-                      className="tabular w-20 text-right text-sm font-semibold text-rose-700"
-                      title={entry.type === "GAVE" ? formatINRCompact(entry.amount) : undefined}
+                      className="tabular w-20 truncate text-right text-sm font-semibold text-rose-700"
+                      title={
+                        entry.type === "GAVE"
+                          ? formatINRCompact(entry.amount)
+                          : undefined
+                      }
                     >
-                      {entry.type === "GAVE" ? formatINRAdaptive(entry.amount) : ""}
+                      {entry.type === "GAVE"
+                        ? formatINRAdaptive(entry.amount, 100_000)
+                        : ""}
                     </span>
                     <span
-                      className="tabular w-20 text-right text-sm font-semibold text-emerald-700"
-                      title={entry.type === "GOT" ? formatINRCompact(entry.amount) : undefined}
+                      className="tabular w-20 truncate text-right text-sm font-semibold text-emerald-700"
+                      title={
+                        entry.type === "GOT"
+                          ? formatINRCompact(entry.amount)
+                          : undefined
+                      }
                     >
-                      {entry.type === "GOT" ? formatINRAdaptive(entry.amount) : ""}
+                      {entry.type === "GOT"
+                        ? formatINRAdaptive(entry.amount, 100_000)
+                        : ""}
                     </span>
                   </div>
                 </EditEntryButton>

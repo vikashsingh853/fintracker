@@ -42,6 +42,7 @@ export type KhataEntryMinAggregateOutputType = {
   amount: bigint | null
   date: Date | null
   note: string | null
+  dueDate: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -54,6 +55,7 @@ export type KhataEntryMaxAggregateOutputType = {
   amount: bigint | null
   date: Date | null
   note: string | null
+  dueDate: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -66,6 +68,7 @@ export type KhataEntryCountAggregateOutputType = {
   amount: number
   date: number
   note: number
+  dueDate: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -88,6 +91,7 @@ export type KhataEntryMinAggregateInputType = {
   amount?: true
   date?: true
   note?: true
+  dueDate?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -100,6 +104,7 @@ export type KhataEntryMaxAggregateInputType = {
   amount?: true
   date?: true
   note?: true
+  dueDate?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -112,6 +117,7 @@ export type KhataEntryCountAggregateInputType = {
   amount?: true
   date?: true
   note?: true
+  dueDate?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -211,6 +217,7 @@ export type KhataEntryGroupByOutputType = {
   amount: bigint
   date: Date
   note: string | null
+  dueDate: Date | null
   createdAt: Date
   updatedAt: Date
   _count: KhataEntryCountAggregateOutputType | null
@@ -246,6 +253,7 @@ export type KhataEntryWhereInput = {
   amount?: Prisma.BigIntFilter<"KhataEntry"> | bigint | number
   date?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
   note?: Prisma.StringNullableFilter<"KhataEntry"> | string | null
+  dueDate?: Prisma.DateTimeNullableFilter<"KhataEntry"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -260,6 +268,7 @@ export type KhataEntryOrderByWithRelationInput = {
   amount?: Prisma.SortOrder
   date?: Prisma.SortOrder
   note?: Prisma.SortOrderInput | Prisma.SortOrder
+  dueDate?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -277,6 +286,7 @@ export type KhataEntryWhereUniqueInput = Prisma.AtLeast<{
   amount?: Prisma.BigIntFilter<"KhataEntry"> | bigint | number
   date?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
   note?: Prisma.StringNullableFilter<"KhataEntry"> | string | null
+  dueDate?: Prisma.DateTimeNullableFilter<"KhataEntry"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -291,6 +301,7 @@ export type KhataEntryOrderByWithAggregationInput = {
   amount?: Prisma.SortOrder
   date?: Prisma.SortOrder
   note?: Prisma.SortOrderInput | Prisma.SortOrder
+  dueDate?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.KhataEntryCountOrderByAggregateInput
@@ -311,6 +322,7 @@ export type KhataEntryScalarWhereWithAggregatesInput = {
   amount?: Prisma.BigIntWithAggregatesFilter<"KhataEntry"> | bigint | number
   date?: Prisma.DateTimeWithAggregatesFilter<"KhataEntry"> | Date | string
   note?: Prisma.StringNullableWithAggregatesFilter<"KhataEntry"> | string | null
+  dueDate?: Prisma.DateTimeNullableWithAggregatesFilter<"KhataEntry"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"KhataEntry"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"KhataEntry"> | Date | string
 }
@@ -321,6 +333,7 @@ export type KhataEntryCreateInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutKhataEntriesInput
@@ -335,6 +348,7 @@ export type KhataEntryUncheckedCreateInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -345,6 +359,7 @@ export type KhataEntryUpdateInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutKhataEntriesNestedInput
@@ -359,6 +374,7 @@ export type KhataEntryUncheckedUpdateInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -371,6 +387,7 @@ export type KhataEntryCreateManyInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -381,6 +398,7 @@ export type KhataEntryUpdateManyMutationInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -393,6 +411,7 @@ export type KhataEntryUncheckedUpdateManyInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -415,6 +434,7 @@ export type KhataEntryCountOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   date?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  dueDate?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -431,6 +451,7 @@ export type KhataEntryMaxOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   date?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  dueDate?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -443,6 +464,7 @@ export type KhataEntryMinOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   date?: Prisma.SortOrder
   note?: Prisma.SortOrder
+  dueDate?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -541,6 +563,7 @@ export type KhataEntryCreateWithoutUserInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   party: Prisma.PartyCreateNestedOneWithoutEntriesInput
@@ -553,6 +576,7 @@ export type KhataEntryUncheckedCreateWithoutUserInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -594,6 +618,7 @@ export type KhataEntryScalarWhereInput = {
   amount?: Prisma.BigIntFilter<"KhataEntry"> | bigint | number
   date?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
   note?: Prisma.StringNullableFilter<"KhataEntry"> | string | null
+  dueDate?: Prisma.DateTimeNullableFilter<"KhataEntry"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KhataEntry"> | Date | string
 }
@@ -604,6 +629,7 @@ export type KhataEntryCreateWithoutPartyInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutKhataEntriesInput
@@ -616,6 +642,7 @@ export type KhataEntryUncheckedCreateWithoutPartyInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -653,6 +680,7 @@ export type KhataEntryCreateManyUserInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -663,6 +691,7 @@ export type KhataEntryUpdateWithoutUserInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   party?: Prisma.PartyUpdateOneRequiredWithoutEntriesNestedInput
@@ -675,6 +704,7 @@ export type KhataEntryUncheckedUpdateWithoutUserInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -686,6 +716,7 @@ export type KhataEntryUncheckedUpdateManyWithoutUserInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -697,6 +728,7 @@ export type KhataEntryCreateManyPartyInput = {
   amount: bigint | number
   date: Date | string
   note?: string | null
+  dueDate?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -707,6 +739,7 @@ export type KhataEntryUpdateWithoutPartyInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutKhataEntriesNestedInput
@@ -719,6 +752,7 @@ export type KhataEntryUncheckedUpdateWithoutPartyInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -730,6 +764,7 @@ export type KhataEntryUncheckedUpdateManyWithoutPartyInput = {
   amount?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -744,6 +779,7 @@ export type KhataEntrySelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   amount?: boolean
   date?: boolean
   note?: boolean
+  dueDate?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -758,6 +794,7 @@ export type KhataEntrySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   amount?: boolean
   date?: boolean
   note?: boolean
+  dueDate?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -772,6 +809,7 @@ export type KhataEntrySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   amount?: boolean
   date?: boolean
   note?: boolean
+  dueDate?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -786,11 +824,12 @@ export type KhataEntrySelectScalar = {
   amount?: boolean
   date?: boolean
   note?: boolean
+  dueDate?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type KhataEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "partyId" | "type" | "amount" | "date" | "note" | "createdAt" | "updatedAt", ExtArgs["result"]["khataEntry"]>
+export type KhataEntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "partyId" | "type" | "amount" | "date" | "note" | "dueDate" | "createdAt" | "updatedAt", ExtArgs["result"]["khataEntry"]>
 export type KhataEntryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   party?: boolean | Prisma.PartyDefaultArgs<ExtArgs>
@@ -818,6 +857,7 @@ export type $KhataEntryPayload<ExtArgs extends runtime.Types.Extensions.Internal
     amount: bigint
     date: Date
     note: string | null
+    dueDate: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["khataEntry"]>
@@ -1252,6 +1292,7 @@ export interface KhataEntryFieldRefs {
   readonly amount: Prisma.FieldRef<"KhataEntry", 'BigInt'>
   readonly date: Prisma.FieldRef<"KhataEntry", 'DateTime'>
   readonly note: Prisma.FieldRef<"KhataEntry", 'String'>
+  readonly dueDate: Prisma.FieldRef<"KhataEntry", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"KhataEntry", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"KhataEntry", 'DateTime'>
 }

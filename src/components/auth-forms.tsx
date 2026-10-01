@@ -26,7 +26,7 @@ function PhoneInput({ defaultValue }: { defaultValue?: string }) {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ next = "/" }: { next?: string }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +44,7 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <input type="hidden" name="next" value={next} />
       <Field label="Mobile number">
         <PhoneInput />
       </Field>
@@ -66,7 +67,14 @@ export function LoginForm() {
 
       <p className="text-center text-xs text-ink-500">
         New to FinTrack?{" "}
-        <Link href="/signup" className="font-medium text-brand-600 hover:text-brand-700">
+        <Link
+          href={
+            next === "/"
+              ? "/signup"
+              : `/signup?next=${encodeURIComponent(next)}`
+          }
+          className="font-medium text-brand-600 hover:text-brand-700"
+        >
           Create an account
         </Link>
       </p>
@@ -74,7 +82,7 @@ export function LoginForm() {
   );
 }
 
-export function SignupForm() {
+export function SignupForm({ next = "/" }: { next?: string }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -85,12 +93,14 @@ export function SignupForm() {
 
     startTransition(async () => {
       const result = await signUp(formData);
-      if (result && !result.ok) setError(result.error ?? "Could not create account");
+      if (result && !result.ok)
+        setError(result.error ?? "Could not create account");
     });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <input type="hidden" name="next" value={next} />
       <Field label="Your name">
         <Input
           name="name"
@@ -135,7 +145,12 @@ export function SignupForm() {
 
       <p className="text-center text-xs text-ink-500">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-brand-600 hover:text-brand-700">
+        <Link
+          href={
+            next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`
+          }
+          className="font-medium text-brand-600 hover:text-brand-700"
+        >
           Sign in
         </Link>
       </p>

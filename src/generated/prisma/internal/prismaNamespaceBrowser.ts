@@ -52,6 +52,11 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  Group: 'Group',
+  GroupMember: 'GroupMember',
+  GroupExpense: 'GroupExpense',
+  GroupExpenseShare: 'GroupExpenseShare',
+  GroupSettlement: 'GroupSettlement',
   Party: 'Party',
   KhataEntry: 'KhataEntry',
   Session: 'Session',
@@ -95,6 +100,71 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const GroupScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GroupScalarFieldEnum = (typeof GroupScalarFieldEnum)[keyof typeof GroupScalarFieldEnum]
+
+
+export const GroupMemberScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  userId: 'userId',
+  name: 'name',
+  email: 'email',
+  role: 'role',
+  inviteTokenHash: 'inviteTokenHash',
+  joinedAt: 'joinedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type GroupMemberScalarFieldEnum = (typeof GroupMemberScalarFieldEnum)[keyof typeof GroupMemberScalarFieldEnum]
+
+
+export const GroupExpenseScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  description: 'description',
+  amount: 'amount',
+  paidById: 'paidById',
+  splitType: 'splitType',
+  date: 'date',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type GroupExpenseScalarFieldEnum = (typeof GroupExpenseScalarFieldEnum)[keyof typeof GroupExpenseScalarFieldEnum]
+
+
+export const GroupExpenseShareScalarFieldEnum = {
+  id: 'id',
+  expenseId: 'expenseId',
+  memberId: 'memberId',
+  amount: 'amount'
+} as const
+
+export type GroupExpenseShareScalarFieldEnum = (typeof GroupExpenseShareScalarFieldEnum)[keyof typeof GroupExpenseShareScalarFieldEnum]
+
+
+export const GroupSettlementScalarFieldEnum = {
+  id: 'id',
+  groupId: 'groupId',
+  fromMemberId: 'fromMemberId',
+  toMemberId: 'toMemberId',
+  amount: 'amount',
+  date: 'date',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type GroupSettlementScalarFieldEnum = (typeof GroupSettlementScalarFieldEnum)[keyof typeof GroupSettlementScalarFieldEnum]
+
+
 export const PartyScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -118,6 +188,7 @@ export const KhataEntryScalarFieldEnum = {
   amount: 'amount',
   date: 'date',
   note: 'note',
+  dueDate: 'dueDate',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

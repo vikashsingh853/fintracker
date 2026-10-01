@@ -10,7 +10,13 @@ export function Skeleton({
   className?: string;
   style?: CSSProperties;
 }) {
-  return <span className={clsx("skeleton block", className)} style={style} aria-hidden />;
+  return (
+    <span
+      className={clsx("skeleton block max-w-full", className)}
+      style={style}
+      aria-hidden
+    />
+  );
 }
 
 /**
@@ -34,7 +40,7 @@ export function LoadingRegion({
 
 export function StatTileSkeleton() {
   return (
-    <div className="rounded-xl border border-ink-200/80 bg-surface p-3.5">
+    <div className="min-w-0 overflow-hidden rounded-xl border border-ink-200/80 bg-surface p-3.5">
       <Skeleton className="h-2.5 w-20" />
       <Skeleton className="mt-2.5 h-5 w-24" />
       <Skeleton className="mt-2 h-2 w-16" />
@@ -58,7 +64,13 @@ export function RowSkeleton({ lines = 2 }: { lines?: number }) {
   );
 }
 
-export function ListCardSkeleton({ rows = 4, title = true }: { rows?: number; title?: boolean }) {
+export function ListCardSkeleton({
+  rows = 4,
+  title = true,
+}: {
+  rows?: number;
+  title?: boolean;
+}) {
   return (
     <Card padded={false}>
       {title && (
@@ -103,13 +115,25 @@ export function HeroSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-600 to-indigo-500 p-5 sm:p-6">
       <span className="skeleton block h-2.5 w-40 !bg-white/25" aria-hidden />
-      <span className="skeleton mt-3 block h-10 w-52 !bg-white/25" aria-hidden />
-      <span className="skeleton mt-3 block h-3 w-full max-w-sm !bg-white/20" aria-hidden />
+      <span
+        className="skeleton mt-3 block h-10 w-52 !bg-white/25"
+        aria-hidden
+      />
+      <span
+        className="skeleton mt-3 block h-3 w-full max-w-sm !bg-white/20"
+        aria-hidden
+      />
       <div className="mt-5 grid grid-cols-3 gap-3 border-t border-white/20 pt-4">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="space-y-2">
-            <span className="skeleton mx-auto block h-2 w-14 !bg-white/20" aria-hidden />
-            <span className="skeleton mx-auto block h-3 w-16 !bg-white/25" aria-hidden />
+            <span
+              className="skeleton mx-auto block h-2 w-14 !bg-white/20"
+              aria-hidden
+            />
+            <span
+              className="skeleton mx-auto block h-3 w-16 !bg-white/25"
+              aria-hidden
+            />
           </div>
         ))}
       </div>

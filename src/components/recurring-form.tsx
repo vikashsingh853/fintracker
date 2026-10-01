@@ -1,6 +1,6 @@
 "use client";
 
-import { Undo2 } from "lucide-react";
+import { Pause, Play, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import {
@@ -21,7 +21,15 @@ import {
   type RecurringRuleDTO,
   type TransactionType,
 } from "@/lib/types";
-import { AmountInput, Button, ErrorNote, Field, Input, Select, Toggle } from "./form";
+import {
+  AmountInput,
+  Button,
+  ErrorNote,
+  Field,
+  Input,
+  Select,
+  Toggle,
+} from "./form";
 import { Sheet } from "./sheet";
 
 function RuleForm({
@@ -126,7 +134,11 @@ function RuleForm({
 
         {type === "TRANSFER" ? (
           <Field label="Transfer to">
-            <Select name="toAccountId" defaultValue={rule?.toAccount?.id ?? ""} required>
+            <Select
+              name="toAccountId"
+              defaultValue={rule?.toAccount?.id ?? ""}
+              required
+            >
               <option value="">Select account</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -137,7 +149,11 @@ function RuleForm({
           </Field>
         ) : (
           <Field label="Category">
-            <Select name="categoryId" defaultValue={rule?.category?.id ?? ""} required>
+            <Select
+              name="categoryId"
+              defaultValue={rule?.category?.id ?? ""}
+              required
+            >
               <option value="">Select category</option>
               {relevantCategories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -208,11 +224,21 @@ function RuleForm({
           {pending ? "Saving…" : rule ? "Save changes" : "Add recurring"}
         </Button>
         {rule && (
-          <Button type="button" variant="danger" onClick={handleDelete} disabled={pending}>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleDelete}
+            disabled={pending}
+          >
             Delete
           </Button>
         )}
-        <Button type="button" variant="secondary" onClick={onDone} disabled={pending}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onDone}
+          disabled={pending}
+        >
           Cancel
         </Button>
       </div>
@@ -240,7 +266,11 @@ export function AddRecurringButton({
         title="Add recurring item"
         description="Rent, subscriptions, SIPs, EMIs and salary."
       >
-        <RuleForm accounts={accounts} categories={categories} onDone={() => setOpen(false)} />
+        <RuleForm
+          accounts={accounts}
+          categories={categories}
+          onDone={() => setOpen(false)}
+        />
       </Sheet>
     </>
   );
@@ -264,11 +294,16 @@ export function EditRecurringButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex-1 rounded-xl text-left transition hover:bg-ink-50"
+        className="min-w-0 flex-1 rounded-xl text-left transition hover:bg-ink-50"
       >
         {children}
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Edit recurring" description={rule.name}>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Edit recurring"
+        description={rule.name}
+      >
         <RuleForm
           accounts={accounts}
           categories={categories}
@@ -308,7 +343,13 @@ export function MarkPaidButton({ rule }: { rule: RecurringRuleDTO }) {
 
   return (
     <>
-      <Button type="button" variant="secondary" size="sm" onClick={handleClick} disabled={pending}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={handleClick}
+        disabled={pending}
+      >
         {pending ? "…" : "Mark paid"}
       </Button>
 
@@ -339,7 +380,11 @@ export function MarkPaidButton({ rule }: { rule: RecurringRuleDTO }) {
             <Button type="submit" disabled={pending} className="flex-1">
               {pending ? "Recording…" : "Record payment"}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
           </div>
@@ -356,7 +401,14 @@ export function MarkPaidButton({ rule }: { rule: RecurringRuleDTO }) {
 }
 
 /** Reverses the last recorded payment and puts the bill back on the due list. */
-export function MarkUnpaidButton({ rule }: { rule: RecurringRuleDTO }) {
+export function MarkUnpaidButton({
+  rule,
+  compact = false,
+}: {
+  rule: RecurringRuleDTO;
+  /** Icon-only below `sm`, for rows that can't spare the width. */
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -375,6 +427,8 @@ export function MarkUnpaidButton({ rule }: { rule: RecurringRuleDTO }) {
     });
   }
 
+  const label = pending ? "Undoing…" : "Mark unpaid";
+
   return (
     <span className="inline-flex flex-col items-end gap-1">
       <Button
@@ -383,10 +437,12 @@ export function MarkUnpaidButton({ rule }: { rule: RecurringRuleDTO }) {
         size="sm"
         onClick={handleClick}
         disabled={pending}
+        aria-label={label}
         title={`Undo the ${formatINRCompact(rule.lastPosted.amount)} payment recorded on ${formatShortDay(new Date(rule.lastPosted.date))}`}
+        className={compact ? "max-sm:px-2" : undefined}
       >
         <Undo2 size={13} />
-        {pending ? "Undoing…" : "Mark unpaid"}
+        <span className={compact ? "max-sm:hidden" : undefined}>{label}</span>
       </Button>
       {error && <ErrorNote message={error} />}
     </span>
@@ -396,6 +452,8 @@ export function MarkUnpaidButton({ rule }: { rule: RecurringRuleDTO }) {
 export function ToggleRecurringButton({ rule }: { rule: RecurringRuleDTO }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const label = rule.isActive ? "Pause" : "Resume";
+  const Icon = rule.isActive ? Pause : Play;
 
   return (
     <Button
@@ -403,6 +461,9 @@ export function ToggleRecurringButton({ rule }: { rule: RecurringRuleDTO }) {
       variant="ghost"
       size="sm"
       disabled={pending}
+      aria-label={label}
+      title={label}
+      className="max-sm:px-2"
       onClick={() =>
         startTransition(async () => {
           await toggleRecurringRule(rule.id);
@@ -410,7 +471,8 @@ export function ToggleRecurringButton({ rule }: { rule: RecurringRuleDTO }) {
         })
       }
     >
-      {rule.isActive ? "Pause" : "Resume"}
+      <Icon size={13} className="sm:hidden" />
+      <span className="max-sm:hidden">{label}</span>
     </Button>
   );
 }

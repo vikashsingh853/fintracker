@@ -52,11 +52,17 @@ export function Sheet({
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="animate-sheet relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl outline-none sm:rounded-2xl"
+        className="animate-sheet relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-surface pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none sm:rounded-2xl sm:pb-0"
       >
         <header className="border-b border-ink-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-ink-900">{title}</h2>
-          {description && <p className="mt-0.5 text-xs text-ink-500">{description}</p>}
+          <h2 className="break-words text-base font-semibold text-ink-900">
+            {title}
+          </h2>
+          {description && (
+            <p className="mt-0.5 break-words text-xs text-ink-500">
+              {description}
+            </p>
+          )}
         </header>
         <div className="flex-1 overflow-y-auto">{children}</div>
       </div>

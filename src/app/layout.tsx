@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
-import { themeInitScript } from "@/components/theme-toggle";
+import { ThemeSync, themeInitScript } from "@/components/theme-toggle";
 import "./globals.css";
 
 const inter = Inter({
@@ -42,7 +42,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <ThemeSync />
+        {children}
+      </body>
     </html>
   );
 }

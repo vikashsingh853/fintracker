@@ -19,9 +19,13 @@ export default function TransactionsLoading() {
         </div>
 
         <div className="space-y-3">
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 overflow-hidden">
             {[16, 20, 18, 22].map((w, i) => (
-              <Skeleton key={i} className="h-7 rounded-full" style={{ width: `${w * 4}px` }} />
+              <Skeleton
+                key={i}
+                className="h-7 rounded-full"
+                style={{ width: `${w * 4}px` }}
+              />
             ))}
           </div>
           <div className="grid gap-2 sm:grid-cols-3">
