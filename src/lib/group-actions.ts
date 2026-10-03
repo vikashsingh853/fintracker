@@ -1,14 +1,13 @@
 "use server";
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { appUrl, sendEmails, type EmailMessage } from "./email";
-import { formatINRCompact, toNumber } from "./money";
+import { normalisePhone } from "./phone";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./session";
 import { computeShares } from "./split";
-import { SPLIT_TYPES, SPLIT_TYPE_LABELS } from "./types";
+import { SPLIT_TYPES, type GroupPersonDTO } from "./types";
 
 export interface GroupActionResult {
   ok: boolean;
@@ -27,13 +26,6 @@ function revalidateGroups() {
 const MAX_MEMBERS = 20;
 /** ₹1,000 crore — matches the cap used for personal transactions. */
 const MAX_AMOUNT_PAISE = 1_000_00_00_000_00n;
-
-const emailSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .email("Enter a valid email address")
-  .max(254);
 
 const amountSchema = z
   .string()
@@ -64,54 +56,86 @@ function parseDate(value: string): Date {
   return new Date(year, month - 1, day, 12, 0, 0);
 }
 
-function newInviteToken() {
-  const token = randomBytes(32).toString("base64url");
-  return { token, hash: hashToken(token) };
-}
-
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function inviteEmail(
-  to: string,
-  inviter: string,
-  groupName: string,
-  token: string,
-): EmailMessage {
-  return {
-    to,
-    subject: `${inviter} added you to "${groupName}" on FinTrack`,
-    text: `${inviter} created a shared expense group "${groupName}" and added you.\n\nAccept the invite to see balances, add expenses and settle up. You'll need a FinTrack account — you can create one from the link.`,
-    action: { label: "Join the group", url: appUrl(`/groups/join/${token}`) },
-  };
+/** Resolves picked `memberUserId` values to real FinTrack accounts. */
+async function pickedUsers(formData: FormData, exclude: Set<string>) {
+  const ids = [...new Set(formData.getAll("memberUserId").map(String))].filter(
+    (id) => id && id.length <= 64 && !exclude.has(id),
+  );
+  if (ids.length === 0) return [];
+  if (ids.length > MAX_MEMBERS) return null;
+  return prisma.user.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true },
+  });
 }
 
-/** Members are entered as parallel name/email lists. */
-function parseMemberRows(formData: FormData) {
-  const names = formData.getAll("memberName").map(String);
-  const emails = formData.getAll("memberEmail").map(String);
-  const rows: Array<{ name: string; email: string }> = [];
+/**
+ * A full mobile number finds any FinTrack account. Name or partial-number
+ * search only covers people you already know — group co-members and khata
+ * contacts — so the user directory can't be browsed.
+ */
+export async function searchPeople(query: string): Promise<GroupPersonDTO[]> {
+  const user = await getCurrentUser();
+  const q = String(query ?? "")
+    .trim()
+    .slice(0, 60);
+  const select = { id: true, name: true, phone: true } as const;
 
-  for (let i = 0; i < emails.length; i++) {
-    const rawEmail = emails[i]?.trim() ?? "";
-    const rawName = names[i]?.trim() ?? "";
-    if (!rawEmail && !rawName) continue;
-    const email = emailSchema.safeParse(rawEmail);
-    if (!email.success)
-      return { error: `Member ${i + 1}: enter a valid email` } as const;
-    const name = rawName || email.data.split("@")[0];
-    if (name.length > 60)
-      return { error: `Member ${i + 1}: name is too long` } as const;
-    rows.push({ name, email: email.data });
+  const phone = normalisePhone(q);
+  if (phone) {
+    const found = await prisma.user.findUnique({ where: { phone }, select });
+    if (!found) return [];
+    return [found.id === user.id ? { ...found, isYou: true } : found];
   }
-  return { rows } as const;
+  if (q.length < 2) return [];
+
+  const contacts = await prisma.party.findMany({
+    where: { userId: user.id, phone: { not: null } },
+    select: { phone: true },
+  });
+  const digits = q.replace(/\D/g, "");
+
+  return prisma.user.findMany({
+    where: {
+      id: { not: user.id },
+      AND: [
+        {
+          OR: [
+            {
+              groupMembers: {
+                some: {
+                  leftAt: null,
+                  group: {
+                    members: { some: { userId: user.id, leftAt: null } },
+                  },
+                },
+              },
+            },
+            { phone: { in: contacts.map((c) => c.phone!) } },
+          ],
+        },
+        {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            ...(digits.length >= 3 ? [{ phone: { contains: digits } }] : []),
+          ],
+        },
+      ],
+    },
+    select,
+    orderBy: { name: "asc" },
+    take: 8,
+  });
 }
 
 async function requireMember(groupId: string) {
   const user = await getCurrentUser();
   const member = await prisma.groupMember.findFirst({
-    where: { groupId, userId: user.id },
+    where: { groupId, userId: user.id, leftAt: null },
   });
   return member ? { user, member } : null;
 }
@@ -133,67 +157,26 @@ export async function createGroup(
     .safeParse(formData.get("name") ?? "");
   if (!name.success) return fail(name.error.issues[0].message);
 
-  const yourEmail = emailSchema.safeParse(formData.get("yourEmail") ?? "");
-  if (!yourEmail.success)
-    return fail("Enter your email — it's required for group updates");
-
-  const parsed = parseMemberRows(formData);
-  if ("error" in parsed) return fail(parsed.error!);
-
-  const seen = new Set([yourEmail.data]);
-  const members = parsed.rows.filter(
-    (m) => !seen.has(m.email) && seen.add(m.email),
-  );
-  if (members.length === 0)
-    return fail("Add at least one other member by email");
-  if (members.length + 1 > MAX_MEMBERS)
+  const people = await pickedUsers(formData, new Set([user.id]));
+  if (!people) return fail(`A group can have at most ${MAX_MEMBERS} members`);
+  if (people.length === 0)
+    return fail("Add at least one person with a FinTrack account");
+  if (people.length + 1 > MAX_MEMBERS)
     return fail(`A group can have at most ${MAX_MEMBERS} members`);
 
-  if (user.email !== yourEmail.data) {
-    const taken = await prisma.user.findFirst({
-      where: { email: yourEmail.data, id: { not: user.id } },
-      select: { id: true },
-    });
-    if (taken)
-      return fail("That email is already linked to another FinTrack account");
-  }
-
-  const invites = members.map((m) => ({ ...m, ...newInviteToken() }));
-
-  const group = await prisma.$transaction(async (tx) => {
-    if (user.email !== yourEmail.data) {
-      await tx.user.update({
-        where: { id: user.id },
-        data: { email: yourEmail.data },
-      });
-    }
-    return tx.group.create({
-      data: {
-        name: name.data,
-        createdById: user.id,
-        members: {
-          create: [
-            {
-              userId: user.id,
-              name: user.name,
-              email: yourEmail.data,
-              role: "OWNER",
-              joinedAt: new Date(),
-            },
-            ...invites.map((m) => ({
-              name: m.name,
-              email: m.email,
-              inviteTokenHash: m.hash,
-            })),
-          ],
-        },
+  const joinedAt = new Date();
+  const group = await prisma.group.create({
+    data: {
+      name: name.data,
+      createdById: user.id,
+      members: {
+        create: [
+          { userId: user.id, name: user.name, role: "OWNER", joinedAt },
+          ...people.map((p) => ({ userId: p.id, name: p.name, joinedAt })),
+        ],
       },
-    });
+    },
   });
-
-  await sendEmails(
-    invites.map((m) => inviteEmail(m.email, user.name, name.data, m.token)),
-  );
 
   revalidateGroups();
   return { ok: true, id: group.id };
@@ -206,84 +189,52 @@ export async function addGroupMembers(
   const access = await requireMember(groupId);
   if (!access) return fail("Group not found");
 
-  const parsed = parseMemberRows(formData);
-  if ("error" in parsed) return fail(parsed.error!);
-
-  const [group, existing] = await Promise.all([
-    prisma.group.findUniqueOrThrow({
-      where: { id: groupId },
-      select: { name: true },
-    }),
-    prisma.groupMember.findMany({
-      where: { groupId },
-      select: { email: true },
-    }),
-  ]);
-
-  const seen = new Set(existing.map((m) => m.email));
-  const members = parsed.rows.filter(
-    (m) => !seen.has(m.email) && seen.add(m.email),
+  const existing = await prisma.groupMember.findMany({
+    where: { groupId },
+    select: { userId: true, leftAt: true },
+  });
+  const active = existing.filter((m) => !m.leftAt);
+  const inGroup = new Set(active.flatMap((m) => (m.userId ? [m.userId] : [])));
+  const leftBefore = new Set(
+    existing.flatMap((m) => (m.leftAt && m.userId ? [m.userId] : [])),
   );
-  if (members.length === 0)
-    return fail("Those people are already in the group");
-  if (existing.length + members.length > MAX_MEMBERS) {
+
+  const people = await pickedUsers(formData, inGroup);
+  if (!people) return fail(`A group can have at most ${MAX_MEMBERS} members`);
+  if (people.length === 0)
+    return fail("Pick someone who isn't already in the group");
+  if (active.length + people.length > MAX_MEMBERS) {
     return fail(`A group can have at most ${MAX_MEMBERS} members`);
   }
 
-  const invites = members.map((m) => ({ ...m, ...newInviteToken() }));
+  const joinedAt = new Date();
+  const returning = people.filter((p) => leftBefore.has(p.id));
+  const fresh = people.filter((p) => !leftBefore.has(p.id));
+
   await prisma.$transaction([
+    // Re-adding restores their original membership, history included.
+    ...returning.map((p) =>
+      prisma.groupMember.update({
+        where: { groupId_userId: { groupId, userId: p.id } },
+        data: { leftAt: null, joinedAt, name: p.name },
+      }),
+    ),
     prisma.groupMember.createMany({
-      data: invites.map((m) => ({
+      data: fresh.map((p) => ({
         groupId,
-        name: m.name,
-        email: m.email,
-        inviteTokenHash: m.hash,
+        userId: p.id,
+        name: p.name,
+        joinedAt,
       })),
+      skipDuplicates: true,
     }),
     prisma.group.update({
       where: { id: groupId },
-      data: { updatedAt: new Date() },
+      data: { updatedAt: joinedAt },
     }),
   ]);
 
-  await sendEmails(
-    invites.map((m) =>
-      inviteEmail(m.email, access.user.name, group.name, m.token),
-    ),
-  );
-
   revalidateGroups();
-  return { ok: true };
-}
-
-/** Issues a fresh invite link; the previous one stops working. */
-export async function resendGroupInvite(
-  memberId: string,
-): Promise<GroupActionResult> {
-  const target = await prisma.groupMember.findUnique({
-    where: { id: memberId },
-    include: { group: { select: { name: true } } },
-  });
-  if (!target) return fail("Member not found");
-
-  const access = await requireMember(target.groupId);
-  if (!access) return fail("Member not found");
-  if (target.userId) return fail("They've already joined");
-
-  const invite = newInviteToken();
-  await prisma.groupMember.update({
-    where: { id: memberId },
-    data: { inviteTokenHash: invite.hash },
-  });
-  await sendEmails([
-    inviteEmail(
-      target.email,
-      access.user.name,
-      target.group.name,
-      invite.token,
-    ),
-  ]);
-
   return { ok: true };
 }
 
@@ -333,33 +284,15 @@ export async function acceptGroupInvite(
   });
   if (already) return fail("You're already a member of this group");
 
-  // Opening the link proves they own this address, so it can become their account email.
-  const emailFree =
-    !user.email &&
-    !(await prisma.user.findFirst({
-      where: { email: member.email },
-      select: { id: true },
-    }));
-
-  await prisma.$transaction([
-    prisma.groupMember.update({
-      where: { id: member.id },
-      data: {
-        userId: user.id,
-        joinedAt: new Date(),
-        inviteTokenHash: null,
-        name: user.name,
-      },
-    }),
-    ...(emailFree
-      ? [
-          prisma.user.update({
-            where: { id: user.id },
-            data: { email: member.email },
-          }),
-        ]
-      : []),
-  ]);
+  await prisma.groupMember.update({
+    where: { id: member.id },
+    data: {
+      userId: user.id,
+      joinedAt: new Date(),
+      inviteTokenHash: null,
+      name: user.name,
+    },
+  });
 
   revalidateGroups();
   return { ok: true, id: member.groupId };
@@ -372,6 +305,88 @@ export async function deleteGroup(groupId: string): Promise<GroupActionResult> {
     return fail("Only the group owner can delete it");
 
   await prisma.group.delete({ where: { id: groupId } });
+  revalidateGroups();
+  return { ok: true };
+}
+
+/** You can only leave once settled up, so nobody is left holding your debt. */
+export async function leaveGroup(groupId: string): Promise<GroupActionResult> {
+  const access = await requireMember(groupId);
+  if (!access) return fail("Group not found");
+  const me = access.member;
+
+  const [paid, owed, sent, received, refs, nextOwner] = await Promise.all([
+    prisma.groupExpense.aggregate({
+      where: { paidById: me.id },
+      _sum: { amount: true },
+    }),
+    prisma.groupExpenseShare.aggregate({
+      where: { memberId: me.id },
+      _sum: { amount: true },
+    }),
+    prisma.groupSettlement.aggregate({
+      where: { fromMemberId: me.id },
+      _sum: { amount: true },
+    }),
+    prisma.groupSettlement.aggregate({
+      where: { toMemberId: me.id },
+      _sum: { amount: true },
+    }),
+    prisma.groupMember.findUniqueOrThrow({
+      where: { id: me.id },
+      select: {
+        _count: {
+          select: { paid: true, shares: true, sent: true, received: true },
+        },
+      },
+    }),
+    prisma.groupMember.findFirst({
+      where: {
+        groupId,
+        userId: { not: null },
+        leftAt: null,
+        id: { not: me.id },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    }),
+  ]);
+
+  const balance =
+    (paid._sum.amount ?? 0n) -
+    (owed._sum.amount ?? 0n) +
+    (sent._sum.amount ?? 0n) -
+    (received._sum.amount ?? 0n);
+  if (balance !== 0n) return fail("Settle up before leaving the group");
+
+  if (me.role === "OWNER" && !nextOwner)
+    return fail("You're the only member — delete the group instead");
+
+  const c = refs._count;
+  const hasHistory = c.paid + c.shares + c.sent + c.received > 0;
+
+  await prisma.$transaction([
+    // Past expenses still point at this row; keeping it also lets a re-add restore it.
+    hasHistory
+      ? prisma.groupMember.update({
+          where: { id: me.id },
+          data: { leftAt: new Date(), role: "MEMBER" },
+        })
+      : prisma.groupMember.delete({ where: { id: me.id } }),
+    ...(me.role === "OWNER" && nextOwner
+      ? [
+          prisma.groupMember.update({
+            where: { id: nextOwner.id },
+            data: { role: "OWNER" },
+          }),
+        ]
+      : []),
+    prisma.group.update({
+      where: { id: groupId },
+      data: { updatedAt: new Date() },
+    }),
+  ]);
+
   revalidateGroups();
   return { ok: true };
 }
@@ -399,13 +414,13 @@ export async function addGroupExpense(
   if (!parsed.success) return fail(parsed.error.issues[0].message);
   const data = parsed.data;
 
-  const [group, members] = await Promise.all([
-    prisma.group.findUniqueOrThrow({
-      where: { id: groupId },
-      select: { name: true },
-    }),
-    prisma.groupMember.findMany({ where: { groupId } }),
-  ]);
+  const members = await prisma.groupMember.findMany({
+    where: {
+      groupId,
+      leftAt: null,
+      OR: [{ userId: { not: null } }, { inviteTokenHash: { not: null } }],
+    },
+  });
   const memberIds = new Set(members.map((m) => m.id));
   if (!memberIds.has(data.paidById)) return fail("Choose who paid");
 
@@ -451,30 +466,6 @@ export async function addGroupExpense(
     }),
   ]);
 
-  const payer = members.find((m) => m.id === data.paidById)!;
-  const total = formatINRCompact(toNumber(data.amount));
-  await sendEmails(
-    members
-      .filter((m) => m.id !== access.member.id)
-      .map((m) => {
-        const share = split.shares.get(m.id) ?? 0n;
-        const yourLine =
-          m.id === payer.id
-            ? `You paid ${total}${share > 0n ? ` and your share is ${formatINRCompact(toNumber(share))}` : ""}.`
-            : share > 0n
-              ? `Your share: ${formatINRCompact(toNumber(share))} (you owe ${payer.name}).`
-              : "You're not part of this split.";
-        return {
-          to: m.email,
-          subject: `${access.user.name} added "${data.description}" (${total}) in ${group.name}`,
-          text: `${access.user.name} added an expense in "${group.name}".\n\n${data.description}: ${total}, paid by ${payer.name}, split ${SPLIT_TYPE_LABELS[data.splitType].toLowerCase()}.\n\n${yourLine}${m.userId ? "" : "\n\nAccept the invite email you received to see the group."}`,
-          action: m.userId
-            ? { label: "View group", url: appUrl(`/groups/${groupId}`) }
-            : undefined,
-        };
-      }),
-  );
-
   revalidateGroups();
   return { ok: true };
 }
@@ -514,15 +505,9 @@ export async function settleGroupDebt(
   if (data.fromMemberId === data.toMemberId)
     return fail("Payer and receiver must be different people");
 
-  const [group, members] = await Promise.all([
-    prisma.group.findUniqueOrThrow({
-      where: { id: groupId },
-      select: { name: true },
-    }),
-    prisma.groupMember.findMany({
-      where: { groupId, id: { in: [data.fromMemberId, data.toMemberId] } },
-    }),
-  ]);
+  const members = await prisma.groupMember.findMany({
+    where: { groupId, id: { in: [data.fromMemberId, data.toMemberId] } },
+  });
   const from = members.find((m) => m.id === data.fromMemberId);
   const to = members.find((m) => m.id === data.toMemberId);
   if (!from || !to) return fail("Choose two people from this group");
@@ -543,20 +528,6 @@ export async function settleGroupDebt(
       data: { updatedAt: new Date() },
     }),
   ]);
-
-  const amount = formatINRCompact(toNumber(data.amount));
-  await sendEmails(
-    [from, to]
-      .filter((m) => m.id !== access.member.id)
-      .map((m) => ({
-        to: m.email,
-        subject: `${from.name} paid ${to.name} ${amount} in ${group.name}`,
-        text: `${access.user.name} recorded a payment in "${group.name}".\n\n${from.name} paid ${to.name} ${amount}.${m.userId ? "" : "\n\nAccept the invite email you received to see the group."}`,
-        action: m.userId
-          ? { label: "View group", url: appUrl(`/groups/${groupId}`) }
-          : undefined,
-      })),
-  );
 
   revalidateGroups();
   return { ok: true };

@@ -57,8 +57,17 @@ export const getGroups = cache(async function getGroups(): Promise<
   const userId = await getCurrentUserId();
 
   const groups = await prisma.group.findMany({
-    where: { members: { some: { userId } } },
-    include: { members: { select: { id: true, userId: true } } },
+    where: { members: { some: { userId, leftAt: null } } },
+    include: {
+      members: {
+        select: {
+          id: true,
+          userId: true,
+          inviteTokenHash: true,
+          leftAt: true,
+        },
+      },
+    },
     orderBy: { updatedAt: "desc" },
   });
   if (groups.length === 0) return [];
@@ -70,8 +79,12 @@ export const getGroups = cache(async function getGroups(): Promise<
     return {
       id: g.id,
       name: g.name,
-      memberCount: g.members.length,
-      pendingCount: g.members.filter((m) => !m.userId).length,
+      memberCount: g.members.filter(
+        (m) => !m.leftAt && (m.userId || m.inviteTokenHash),
+      ).length,
+      pendingCount: g.members.filter(
+        (m) => !m.leftAt && !m.userId && m.inviteTokenHash,
+      ).length,
       yourBalance: balances.get(you.id) ?? 0,
       lastActivity: g.updatedAt.toISOString(),
     };
@@ -111,9 +124,12 @@ export const getGroupDetail = cache(async function getGroupDetail(
   const userId = await getCurrentUserId();
 
   const group = await prisma.group.findFirst({
-    where: { id: groupId, members: { some: { userId } } },
+    where: { id: groupId, members: { some: { userId, leftAt: null } } },
     include: {
-      members: { orderBy: { createdAt: "asc" } },
+      members: {
+        include: { user: { select: { phone: true } } },
+        orderBy: { createdAt: "asc" },
+      },
       expenses: {
         include: { shares: true },
         orderBy: [{ date: "desc" }, { createdAt: "desc" }],
@@ -180,9 +196,12 @@ export const getGroupDetail = cache(async function getGroupDetail(
   const members: GroupMemberDTO[] = group.members.map((m) => ({
     id: m.id,
     name: m.name,
+    phone: m.user?.phone ?? null,
     email: m.email,
     role: m.role === "OWNER" ? "OWNER" : "MEMBER",
-    isPending: !m.userId,
+    isPending: !m.leftAt && !m.userId && !!m.inviteTokenHash,
+    // No account and no invite means their account was deleted.
+    hasLeft: !!m.leftAt || (!m.userId && !m.inviteTokenHash),
     isYou: m.id === you.id,
     balance: balances.get(m.id) ?? 0,
   }));

@@ -33,6 +33,7 @@ export type GroupMemberMinAggregateOutputType = {
   role: string | null
   inviteTokenHash: string | null
   joinedAt: Date | null
+  leftAt: Date | null
   createdAt: Date | null
 }
 
@@ -45,6 +46,7 @@ export type GroupMemberMaxAggregateOutputType = {
   role: string | null
   inviteTokenHash: string | null
   joinedAt: Date | null
+  leftAt: Date | null
   createdAt: Date | null
 }
 
@@ -57,6 +59,7 @@ export type GroupMemberCountAggregateOutputType = {
   role: number
   inviteTokenHash: number
   joinedAt: number
+  leftAt: number
   createdAt: number
   _all: number
 }
@@ -71,6 +74,7 @@ export type GroupMemberMinAggregateInputType = {
   role?: true
   inviteTokenHash?: true
   joinedAt?: true
+  leftAt?: true
   createdAt?: true
 }
 
@@ -83,6 +87,7 @@ export type GroupMemberMaxAggregateInputType = {
   role?: true
   inviteTokenHash?: true
   joinedAt?: true
+  leftAt?: true
   createdAt?: true
 }
 
@@ -95,6 +100,7 @@ export type GroupMemberCountAggregateInputType = {
   role?: true
   inviteTokenHash?: true
   joinedAt?: true
+  leftAt?: true
   createdAt?: true
   _all?: true
 }
@@ -176,10 +182,11 @@ export type GroupMemberGroupByOutputType = {
   groupId: string
   userId: string | null
   name: string
-  email: string
+  email: string | null
   role: string
   inviteTokenHash: string | null
   joinedAt: Date | null
+  leftAt: Date | null
   createdAt: Date
   _count: GroupMemberCountAggregateOutputType | null
   _min: GroupMemberMinAggregateOutputType | null
@@ -209,10 +216,11 @@ export type GroupMemberWhereInput = {
   groupId?: Prisma.StringFilter<"GroupMember"> | string
   userId?: Prisma.StringNullableFilter<"GroupMember"> | string | null
   name?: Prisma.StringFilter<"GroupMember"> | string
-  email?: Prisma.StringFilter<"GroupMember"> | string
+  email?: Prisma.StringNullableFilter<"GroupMember"> | string | null
   role?: Prisma.StringFilter<"GroupMember"> | string
   inviteTokenHash?: Prisma.StringNullableFilter<"GroupMember"> | string | null
   joinedAt?: Prisma.DateTimeNullableFilter<"GroupMember"> | Date | string | null
+  leftAt?: Prisma.DateTimeNullableFilter<"GroupMember"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"GroupMember"> | Date | string
   group?: Prisma.XOR<Prisma.GroupScalarRelationFilter, Prisma.GroupWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -227,10 +235,11 @@ export type GroupMemberOrderByWithRelationInput = {
   groupId?: Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
-  email?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   inviteTokenHash?: Prisma.SortOrderInput | Prisma.SortOrder
   joinedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  leftAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   group?: Prisma.GroupOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
@@ -251,9 +260,10 @@ export type GroupMemberWhereUniqueInput = Prisma.AtLeast<{
   groupId?: Prisma.StringFilter<"GroupMember"> | string
   userId?: Prisma.StringNullableFilter<"GroupMember"> | string | null
   name?: Prisma.StringFilter<"GroupMember"> | string
-  email?: Prisma.StringFilter<"GroupMember"> | string
+  email?: Prisma.StringNullableFilter<"GroupMember"> | string | null
   role?: Prisma.StringFilter<"GroupMember"> | string
   joinedAt?: Prisma.DateTimeNullableFilter<"GroupMember"> | Date | string | null
+  leftAt?: Prisma.DateTimeNullableFilter<"GroupMember"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"GroupMember"> | Date | string
   group?: Prisma.XOR<Prisma.GroupScalarRelationFilter, Prisma.GroupWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -268,10 +278,11 @@ export type GroupMemberOrderByWithAggregationInput = {
   groupId?: Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
-  email?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   inviteTokenHash?: Prisma.SortOrderInput | Prisma.SortOrder
   joinedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  leftAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.GroupMemberCountOrderByAggregateInput
   _max?: Prisma.GroupMemberMaxOrderByAggregateInput
@@ -286,20 +297,22 @@ export type GroupMemberScalarWhereWithAggregatesInput = {
   groupId?: Prisma.StringWithAggregatesFilter<"GroupMember"> | string
   userId?: Prisma.StringNullableWithAggregatesFilter<"GroupMember"> | string | null
   name?: Prisma.StringWithAggregatesFilter<"GroupMember"> | string
-  email?: Prisma.StringWithAggregatesFilter<"GroupMember"> | string
+  email?: Prisma.StringNullableWithAggregatesFilter<"GroupMember"> | string | null
   role?: Prisma.StringWithAggregatesFilter<"GroupMember"> | string
   inviteTokenHash?: Prisma.StringNullableWithAggregatesFilter<"GroupMember"> | string | null
   joinedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"GroupMember"> | Date | string | null
+  leftAt?: Prisma.DateTimeNullableWithAggregatesFilter<"GroupMember"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"GroupMember"> | Date | string
 }
 
 export type GroupMemberCreateInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   group: Prisma.GroupCreateNestedOneWithoutMembersInput
   user?: Prisma.UserCreateNestedOneWithoutGroupMembersInput
@@ -314,10 +327,11 @@ export type GroupMemberUncheckedCreateInput = {
   groupId: string
   userId?: string | null
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   paid?: Prisma.GroupExpenseUncheckedCreateNestedManyWithoutPaidByInput
   shares?: Prisma.GroupExpenseShareUncheckedCreateNestedManyWithoutMemberInput
@@ -328,10 +342,11 @@ export type GroupMemberUncheckedCreateInput = {
 export type GroupMemberUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   group?: Prisma.GroupUpdateOneRequiredWithoutMembersNestedInput
   user?: Prisma.UserUpdateOneWithoutGroupMembersNestedInput
@@ -346,10 +361,11 @@ export type GroupMemberUncheckedUpdateInput = {
   groupId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   paid?: Prisma.GroupExpenseUncheckedUpdateManyWithoutPaidByNestedInput
   shares?: Prisma.GroupExpenseShareUncheckedUpdateManyWithoutMemberNestedInput
@@ -362,20 +378,22 @@ export type GroupMemberCreateManyInput = {
   groupId: string
   userId?: string | null
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
 }
 
 export type GroupMemberUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -384,10 +402,11 @@ export type GroupMemberUncheckedUpdateManyInput = {
   groupId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -420,6 +439,7 @@ export type GroupMemberCountOrderByAggregateInput = {
   role?: Prisma.SortOrder
   inviteTokenHash?: Prisma.SortOrder
   joinedAt?: Prisma.SortOrder
+  leftAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -432,6 +452,7 @@ export type GroupMemberMaxOrderByAggregateInput = {
   role?: Prisma.SortOrder
   inviteTokenHash?: Prisma.SortOrder
   joinedAt?: Prisma.SortOrder
+  leftAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -444,6 +465,7 @@ export type GroupMemberMinOrderByAggregateInput = {
   role?: Prisma.SortOrder
   inviteTokenHash?: Prisma.SortOrder
   joinedAt?: Prisma.SortOrder
+  leftAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -599,10 +621,11 @@ export type GroupMemberUpdateOneRequiredWithoutReceivedNestedInput = {
 export type GroupMemberCreateWithoutUserInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   group: Prisma.GroupCreateNestedOneWithoutMembersInput
   paid?: Prisma.GroupExpenseCreateNestedManyWithoutPaidByInput
@@ -615,10 +638,11 @@ export type GroupMemberUncheckedCreateWithoutUserInput = {
   id?: string
   groupId: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   paid?: Prisma.GroupExpenseUncheckedCreateNestedManyWithoutPaidByInput
   shares?: Prisma.GroupExpenseShareUncheckedCreateNestedManyWithoutMemberInput
@@ -660,20 +684,22 @@ export type GroupMemberScalarWhereInput = {
   groupId?: Prisma.StringFilter<"GroupMember"> | string
   userId?: Prisma.StringNullableFilter<"GroupMember"> | string | null
   name?: Prisma.StringFilter<"GroupMember"> | string
-  email?: Prisma.StringFilter<"GroupMember"> | string
+  email?: Prisma.StringNullableFilter<"GroupMember"> | string | null
   role?: Prisma.StringFilter<"GroupMember"> | string
   inviteTokenHash?: Prisma.StringNullableFilter<"GroupMember"> | string | null
   joinedAt?: Prisma.DateTimeNullableFilter<"GroupMember"> | Date | string | null
+  leftAt?: Prisma.DateTimeNullableFilter<"GroupMember"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"GroupMember"> | Date | string
 }
 
 export type GroupMemberCreateWithoutGroupInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutGroupMembersInput
   paid?: Prisma.GroupExpenseCreateNestedManyWithoutPaidByInput
@@ -686,10 +712,11 @@ export type GroupMemberUncheckedCreateWithoutGroupInput = {
   id?: string
   userId?: string | null
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   paid?: Prisma.GroupExpenseUncheckedCreateNestedManyWithoutPaidByInput
   shares?: Prisma.GroupExpenseShareUncheckedCreateNestedManyWithoutMemberInput
@@ -726,10 +753,11 @@ export type GroupMemberUpdateManyWithWhereWithoutGroupInput = {
 export type GroupMemberCreateWithoutPaidInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   group: Prisma.GroupCreateNestedOneWithoutMembersInput
   user?: Prisma.UserCreateNestedOneWithoutGroupMembersInput
@@ -743,10 +771,11 @@ export type GroupMemberUncheckedCreateWithoutPaidInput = {
   groupId: string
   userId?: string | null
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   shares?: Prisma.GroupExpenseShareUncheckedCreateNestedManyWithoutMemberInput
   sent?: Prisma.GroupSettlementUncheckedCreateNestedManyWithoutFromInput
@@ -772,10 +801,11 @@ export type GroupMemberUpdateToOneWithWhereWithoutPaidInput = {
 export type GroupMemberUpdateWithoutPaidInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   group?: Prisma.GroupUpdateOneRequiredWithoutMembersNestedInput
   user?: Prisma.UserUpdateOneWithoutGroupMembersNestedInput
@@ -789,10 +819,11 @@ export type GroupMemberUncheckedUpdateWithoutPaidInput = {
   groupId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   shares?: Prisma.GroupExpenseShareUncheckedUpdateManyWithoutMemberNestedInput
   sent?: Prisma.GroupSettlementUncheckedUpdateManyWithoutFromNestedInput
@@ -802,10 +833,11 @@ export type GroupMemberUncheckedUpdateWithoutPaidInput = {
 export type GroupMemberCreateWithoutSharesInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   group: Prisma.GroupCreateNestedOneWithoutMembersInput
   user?: Prisma.UserCreateNestedOneWithoutGroupMembersInput
@@ -819,10 +851,11 @@ export type GroupMemberUncheckedCreateWithoutSharesInput = {
   groupId: string
   userId?: string | null
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   paid?: Prisma.GroupExpenseUncheckedCreateNestedManyWithoutPaidByInput
   sent?: Prisma.GroupSettlementUncheckedCreateNestedManyWithoutFromInput
@@ -848,10 +881,11 @@ export type GroupMemberUpdateToOneWithWhereWithoutSharesInput = {
 export type GroupMemberUpdateWithoutSharesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   group?: Prisma.GroupUpdateOneRequiredWithoutMembersNestedInput
   user?: Prisma.UserUpdateOneWithoutGroupMembersNestedInput
@@ -865,10 +899,11 @@ export type GroupMemberUncheckedUpdateWithoutSharesInput = {
   groupId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   paid?: Prisma.GroupExpenseUncheckedUpdateManyWithoutPaidByNestedInput
   sent?: Prisma.GroupSettlementUncheckedUpdateManyWithoutFromNestedInput
@@ -878,10 +913,11 @@ export type GroupMemberUncheckedUpdateWithoutSharesInput = {
 export type GroupMemberCreateWithoutSentInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   group: Prisma.GroupCreateNestedOneWithoutMembersInput
   user?: Prisma.UserCreateNestedOneWithoutGroupMembersInput
@@ -895,10 +931,11 @@ export type GroupMemberUncheckedCreateWithoutSentInput = {
   groupId: string
   userId?: string | null
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   paid?: Prisma.GroupExpenseUncheckedCreateNestedManyWithoutPaidByInput
   shares?: Prisma.GroupExpenseShareUncheckedCreateNestedManyWithoutMemberInput
@@ -913,10 +950,11 @@ export type GroupMemberCreateOrConnectWithoutSentInput = {
 export type GroupMemberCreateWithoutReceivedInput = {
   id?: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   group: Prisma.GroupCreateNestedOneWithoutMembersInput
   user?: Prisma.UserCreateNestedOneWithoutGroupMembersInput
@@ -930,10 +968,11 @@ export type GroupMemberUncheckedCreateWithoutReceivedInput = {
   groupId: string
   userId?: string | null
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
   paid?: Prisma.GroupExpenseUncheckedCreateNestedManyWithoutPaidByInput
   shares?: Prisma.GroupExpenseShareUncheckedCreateNestedManyWithoutMemberInput
@@ -959,10 +998,11 @@ export type GroupMemberUpdateToOneWithWhereWithoutSentInput = {
 export type GroupMemberUpdateWithoutSentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   group?: Prisma.GroupUpdateOneRequiredWithoutMembersNestedInput
   user?: Prisma.UserUpdateOneWithoutGroupMembersNestedInput
@@ -976,10 +1016,11 @@ export type GroupMemberUncheckedUpdateWithoutSentInput = {
   groupId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   paid?: Prisma.GroupExpenseUncheckedUpdateManyWithoutPaidByNestedInput
   shares?: Prisma.GroupExpenseShareUncheckedUpdateManyWithoutMemberNestedInput
@@ -1000,10 +1041,11 @@ export type GroupMemberUpdateToOneWithWhereWithoutReceivedInput = {
 export type GroupMemberUpdateWithoutReceivedInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   group?: Prisma.GroupUpdateOneRequiredWithoutMembersNestedInput
   user?: Prisma.UserUpdateOneWithoutGroupMembersNestedInput
@@ -1017,10 +1059,11 @@ export type GroupMemberUncheckedUpdateWithoutReceivedInput = {
   groupId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   paid?: Prisma.GroupExpenseUncheckedUpdateManyWithoutPaidByNestedInput
   shares?: Prisma.GroupExpenseShareUncheckedUpdateManyWithoutMemberNestedInput
@@ -1031,20 +1074,22 @@ export type GroupMemberCreateManyUserInput = {
   id?: string
   groupId: string
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
 }
 
 export type GroupMemberUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   group?: Prisma.GroupUpdateOneRequiredWithoutMembersNestedInput
   paid?: Prisma.GroupExpenseUpdateManyWithoutPaidByNestedInput
@@ -1057,10 +1102,11 @@ export type GroupMemberUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   groupId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   paid?: Prisma.GroupExpenseUncheckedUpdateManyWithoutPaidByNestedInput
   shares?: Prisma.GroupExpenseShareUncheckedUpdateManyWithoutMemberNestedInput
@@ -1072,10 +1118,11 @@ export type GroupMemberUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   groupId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1083,20 +1130,22 @@ export type GroupMemberCreateManyGroupInput = {
   id?: string
   userId?: string | null
   name: string
-  email: string
+  email?: string | null
   role?: string
   inviteTokenHash?: string | null
   joinedAt?: Date | string | null
+  leftAt?: Date | string | null
   createdAt?: Date | string
 }
 
 export type GroupMemberUpdateWithoutGroupInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutGroupMembersNestedInput
   paid?: Prisma.GroupExpenseUpdateManyWithoutPaidByNestedInput
@@ -1109,10 +1158,11 @@ export type GroupMemberUncheckedUpdateWithoutGroupInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   paid?: Prisma.GroupExpenseUncheckedUpdateManyWithoutPaidByNestedInput
   shares?: Prisma.GroupExpenseShareUncheckedUpdateManyWithoutMemberNestedInput
@@ -1124,10 +1174,11 @@ export type GroupMemberUncheckedUpdateManyWithoutGroupInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   inviteTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   joinedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  leftAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1198,6 +1249,7 @@ export type GroupMemberSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   role?: boolean
   inviteTokenHash?: boolean
   joinedAt?: boolean
+  leftAt?: boolean
   createdAt?: boolean
   group?: boolean | Prisma.GroupDefaultArgs<ExtArgs>
   user?: boolean | Prisma.GroupMember$userArgs<ExtArgs>
@@ -1217,6 +1269,7 @@ export type GroupMemberSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   role?: boolean
   inviteTokenHash?: boolean
   joinedAt?: boolean
+  leftAt?: boolean
   createdAt?: boolean
   group?: boolean | Prisma.GroupDefaultArgs<ExtArgs>
   user?: boolean | Prisma.GroupMember$userArgs<ExtArgs>
@@ -1231,6 +1284,7 @@ export type GroupMemberSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   role?: boolean
   inviteTokenHash?: boolean
   joinedAt?: boolean
+  leftAt?: boolean
   createdAt?: boolean
   group?: boolean | Prisma.GroupDefaultArgs<ExtArgs>
   user?: boolean | Prisma.GroupMember$userArgs<ExtArgs>
@@ -1245,10 +1299,11 @@ export type GroupMemberSelectScalar = {
   role?: boolean
   inviteTokenHash?: boolean
   joinedAt?: boolean
+  leftAt?: boolean
   createdAt?: boolean
 }
 
-export type GroupMemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "groupId" | "userId" | "name" | "email" | "role" | "inviteTokenHash" | "joinedAt" | "createdAt", ExtArgs["result"]["groupMember"]>
+export type GroupMemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "groupId" | "userId" | "name" | "email" | "role" | "inviteTokenHash" | "joinedAt" | "leftAt" | "createdAt", ExtArgs["result"]["groupMember"]>
 export type GroupMemberInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   group?: boolean | Prisma.GroupDefaultArgs<ExtArgs>
   user?: boolean | Prisma.GroupMember$userArgs<ExtArgs>
@@ -1282,10 +1337,11 @@ export type $GroupMemberPayload<ExtArgs extends runtime.Types.Extensions.Interna
     groupId: string
     userId: string | null
     name: string
-    email: string
+    email: string | null
     role: string
     inviteTokenHash: string | null
     joinedAt: Date | null
+    leftAt: Date | null
     createdAt: Date
   }, ExtArgs["result"]["groupMember"]>
   composites: {}
@@ -1724,6 +1780,7 @@ export interface GroupMemberFieldRefs {
   readonly role: Prisma.FieldRef<"GroupMember", 'String'>
   readonly inviteTokenHash: Prisma.FieldRef<"GroupMember", 'String'>
   readonly joinedAt: Prisma.FieldRef<"GroupMember", 'DateTime'>
+  readonly leftAt: Prisma.FieldRef<"GroupMember", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"GroupMember", 'DateTime'>
 }
     

@@ -6,6 +6,7 @@ import {
   AddExpenseButton,
   AddMembersButton,
   DeleteGroupButton,
+  LeaveGroupButton,
   PendingMemberActions,
   SettleUpButton,
 } from "@/components/group-forms";
@@ -13,6 +14,7 @@ import { Badge, Card, CardHeader, EmptyState } from "@/components/ui";
 import { formatShortDay } from "@/lib/dates";
 import { getGroupDetail } from "@/lib/groups";
 import { formatINRAdaptive, formatINRCompact } from "@/lib/money";
+import { formatPhoneClient } from "@/lib/phone";
 
 export default async function GroupPage({
   params,
@@ -24,6 +26,7 @@ export default async function GroupPage({
   if (!group) notFound();
 
   const you = group.members.find((m) => m.isYou)!;
+  const activeMembers = group.members.filter((m) => !m.hasLeft);
   const yourDebts = group.debts.filter(
     (d) => d.fromId === you.id || d.toId === you.id,
   );
@@ -45,7 +48,7 @@ export default async function GroupPage({
           {group.name}
         </h1>
         <p className="mt-0.5 text-xs text-ink-500">
-          {group.members.length} members · {formatINRAdaptive(group.totalSpent)}{" "}
+          {activeMembers.length} members · {formatINRAdaptive(group.totalSpent)}{" "}
           spent in total
         </p>
 
@@ -90,7 +93,7 @@ export default async function GroupPage({
         <div className="mt-4 flex gap-2">
           <AddExpenseButton
             groupId={group.id}
-            members={group.members}
+            members={activeMembers}
             youMemberId={group.youMemberId}
           />
           <SettleUpButton
@@ -148,7 +151,12 @@ export default async function GroupPage({
       <Card>
         <CardHeader
           title="Members"
-          action={<AddMembersButton groupId={group.id} />}
+          action={
+            <AddMembersButton
+              groupId={group.id}
+              existingPhones={activeMembers.map((m) => m.phone)}
+            />
+          }
         />
         <ul className="divide-y divide-ink-100">
           {group.members.map((m) => (
@@ -166,9 +174,10 @@ export default async function GroupPage({
                   </span>
                   {m.role === "OWNER" && <Badge tone="brand">Owner</Badge>}
                   {m.isPending && <Badge tone="warn">Invited</Badge>}
+                  {m.hasLeft && <Badge>Left</Badge>}
                 </span>
                 <span className="block truncate text-[11px] text-ink-500">
-                  {m.email}
+                  {m.phone ? formatPhoneClient(m.phone) : m.email}
                   {m.isPending && m.balance !== 0
                     ? ` · ${m.balance > 0 ? "+" : "−"}${formatINRAdaptive(Math.abs(m.balance))}`
                     : ""}
@@ -276,9 +285,12 @@ export default async function GroupPage({
         )}
       </Card>
 
-      {group.isOwner && (
-        <DeleteGroupButton groupId={group.id} name={group.name} />
-      )}
+      <div className="flex flex-wrap items-start gap-2">
+        <LeaveGroupButton groupId={group.id} name={group.name} />
+        {group.isOwner && (
+          <DeleteGroupButton groupId={group.id} name={group.name} />
+        )}
+      </div>
     </div>
   );
 }

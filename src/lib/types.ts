@@ -261,13 +261,25 @@ export const SPLIT_TYPE_LABELS: Record<SplitType, string> = {
 export interface GroupMemberDTO {
   id: string;
   name: string;
-  email: string;
+  phone: string | null;
+  /** Only set on legacy email invites. */
+  email: string | null;
   role: "OWNER" | "MEMBER";
-  /** Invited but hasn't accepted yet. */
+  /** Legacy email invite that hasn't been accepted yet. */
   isPending: boolean;
+  /** Left the group; kept only because past expenses reference them. */
+  hasLeft: boolean;
   isYou: boolean;
   /** Paise. Positive: the group owes them. Negative: they owe the group. */
   balance: number;
+}
+
+/** A FinTrack account that can be added to a group. */
+export interface GroupPersonDTO {
+  id: string;
+  name: string;
+  phone: string;
+  isYou?: boolean;
 }
 
 export interface GroupSummaryDTO {

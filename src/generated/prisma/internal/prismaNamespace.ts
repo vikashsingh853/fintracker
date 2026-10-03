@@ -1616,6 +1616,7 @@ export const GroupMemberScalarFieldEnum = {
   role: 'role',
   inviteTokenHash: 'inviteTokenHash',
   joinedAt: 'joinedAt',
+  leftAt: 'leftAt',
   createdAt: 'createdAt'
 } as const
 

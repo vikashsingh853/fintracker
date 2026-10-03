@@ -39,8 +39,8 @@ model User {
   groupMembers   GroupMember[]
 }
 
-// Splitwise-style shared expenses. Members are referenced by GroupMember id so
-// an invited person can be part of splits before they accept the invite.
+// Splitwise-style shared expenses. Members are existing FinTrack users added
+// directly (WhatsApp-style) by mobile number or contact search.
 model Group {
   id          String   @id @default(cuid())
   name        String
@@ -57,15 +57,18 @@ model Group {
 model GroupMember {
   id              String    @id @default(cuid())
   groupId         String
-  // Null until the invitee accepts via the emailed link.
+  // Null only for legacy email invites that were never accepted.
   userId          String?
   name            String
-  email           String
+  // Only set on legacy email invites.
+  email           String?
   // OWNER | MEMBER
   role            String    @default("MEMBER")
   // SHA-256 of the one-time invite token; cleared once accepted.
   inviteTokenHash String?   @unique
   joinedAt        DateTime?
+  // Set when they leave; the row stays so past expenses and a later re-add keep their history.
+  leftAt          DateTime?
   createdAt       DateTime  @default(now())
 
   group    Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)

@@ -1,9 +1,15 @@
 "use client";
 
 import clsx from "clsx";
-import { Plus, Trash2, X } from "lucide-react";
+import { Check, Plus, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  useTransition,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   acceptGroupInvite,
   addGroupExpense,
@@ -12,19 +18,22 @@ import {
   deleteGroup,
   deleteGroupExpense,
   deleteGroupSettlement,
+  leaveGroup,
   removePendingMember,
-  resendGroupInvite,
+  searchPeople,
   settleGroupDebt,
   type GroupActionResult,
 } from "@/lib/group-actions";
 import { formatDay, toDateInputValue } from "@/lib/dates";
 import { formatINRCompact } from "@/lib/money";
+import { formatPhoneClient, normalisePhone } from "@/lib/phone";
 import {
   SPLIT_TYPES,
   SPLIT_TYPE_LABELS,
   type GroupActivity,
   type GroupDebt,
   type GroupMemberDTO,
+  type GroupPersonDTO,
   type SplitType,
 } from "@/lib/types";
 import { AmountInput, Button, ErrorNote, Field, Input, Select } from "./form";
@@ -61,55 +70,161 @@ function parseRupees(value: string): number {
 }
 
 /* ------------------------------------------------------------------ */
-/* Members input                                                       */
+/* Member picker                                                       */
 /* ------------------------------------------------------------------ */
 
-function MemberRows() {
-  const [rows, setRows] = useState([0]);
-  const [nextKey, setNextKey] = useState(1);
+/** WhatsApp-style picker: find FinTrack accounts by mobile number or name. */
+function MemberPicker({
+  existingPhones = [],
+}: {
+  existingPhones?: Array<string | null>;
+}) {
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<GroupPersonDTO[]>([]);
+  const [found, setFound] = useState<{
+    query: string;
+    people: GroupPersonDTO[];
+  } | null>(null);
+
+  const q = query.trim();
+  const active = q.length >= 2;
+  const searching = active && found?.query !== q;
+  const results = active && found?.query === q ? found.people : [];
+  const isFullNumber = normalisePhone(q) !== null;
+
+  // Debounce so typing doesn't fire a server call per keystroke.
+  useEffect(() => {
+    if (q.length < 2) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const people = await searchPeople(q).catch(() => []);
+      if (!cancelled) setFound({ query: q, people });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [q]);
+
+  const taken = (p: GroupPersonDTO) =>
+    p.isYou ||
+    existingPhones.includes(p.phone) ||
+    selected.some((s) => s.id === p.id);
+
+  function add(person: GroupPersonDTO) {
+    if (taken(person)) return;
+    setSelected((s) => [...s, person]);
+    setQuery("");
+  }
 
   return (
     <div className="space-y-2">
-      {rows.map((key, index) => (
-        <div key={key} className="flex items-start gap-2">
-          <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-            <Input
-              name="memberName"
-              maxLength={60}
-              placeholder={`Name ${index + 1}`}
-              aria-label={`Member ${index + 1} name`}
-            />
-            <Input
-              name="memberEmail"
-              type="email"
-              required
-              maxLength={254}
-              placeholder="friend@email.com"
-              aria-label={`Member ${index + 1} email`}
-            />
-          </div>
-          {rows.length > 1 && (
-            <button
-              type="button"
-              onClick={() => setRows((r) => r.filter((k) => k !== key))}
-              aria-label={`Remove member ${index + 1}`}
-              className="mt-2 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
+      {selected.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5">
+          {selected.map((p) => (
+            <li
+              key={p.id}
+              className="inline-flex max-w-full items-center gap-1 rounded-full bg-brand-50 py-1 pl-3 pr-1 text-xs font-medium text-brand-700"
             >
-              <X size={15} />
-            </button>
-          )}
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => {
-          setRows((r) => [...r, nextKey]);
-          setNextKey((k) => k + 1);
-        }}
-        className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
-      >
-        <Plus size={14} /> Add another person
-      </button>
+              <input type="hidden" name="memberUserId" value={p.id} />
+              <span className="truncate">{p.name}</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setSelected((s) => s.filter((x) => x.id !== p.id))
+                }
+                aria-label={`Remove ${p.name}`}
+                className="grid h-5 w-5 shrink-0 place-items-center rounded-full transition hover:bg-brand-100"
+              >
+                <X size={12} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="relative">
+        <Search
+          size={16}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+        />
+        <Input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter picks the only match instead of submitting the form.
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            if (results.length === 1) add(results[0]);
+          }}
+          maxLength={60}
+          autoComplete="off"
+          placeholder="Mobile number or name"
+          aria-label="Search people on FinTrack"
+          className="pl-9"
+        />
+      </div>
+
+      {!active ? (
+        <p className="text-[11px] text-ink-500">
+          Enter a 10-digit mobile number to find anyone on FinTrack, or search
+          by name among people from your groups and khata.
+        </p>
+      ) : searching ? (
+        <p className="text-[11px] text-ink-500">Searching…</p>
+      ) : results.length === 0 ? (
+        <p className="text-[11px] text-ink-500">
+          {isFullNumber
+            ? "No FinTrack account with this number. Ask them to sign up first."
+            : "No match. Try their full 10-digit mobile number."}
+        </p>
+      ) : (
+        <ul className="divide-y divide-ink-100 rounded-xl border border-ink-200">
+          {results.map((p) => {
+            const added = taken(p);
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  disabled={added}
+                  onClick={() => add(p)}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-ink-50 disabled:cursor-default disabled:hover:bg-transparent"
+                >
+                  <span
+                    aria-hidden
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700"
+                  >
+                    {p.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-ink-900">
+                      {p.isYou ? `${p.name} (you)` : p.name}
+                    </span>
+                    <span className="block truncate text-[11px] text-ink-500">
+                      {formatPhoneClient(p.phone)}
+                    </span>
+                  </span>
+                  {p.isYou ? (
+                    <span className="shrink-0 text-[11px] text-ink-400">
+                      That&apos;s you
+                    </span>
+                  ) : added ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-ink-400">
+                      <Check size={13} />{" "}
+                      {existingPhones.includes(p.phone) ? "In group" : "Added"}
+                    </span>
+                  ) : (
+                    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-brand-600">
+                      <Plus size={13} /> Add
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
@@ -118,11 +233,7 @@ function MemberRows() {
 /* Create group / add members                                          */
 /* ------------------------------------------------------------------ */
 
-export function CreateGroupButton({
-  defaultEmail,
-}: {
-  defaultEmail: string | null;
-}) {
+export function CreateGroupButton() {
   const [open, setOpen] = useState(false);
   const { pending, error, run, router } = useAction();
 
@@ -147,7 +258,7 @@ export function CreateGroupButton({
         open={open}
         onClose={() => setOpen(false)}
         title="Create group"
-        description="Everyone gets an email invite to join."
+        description="Add people who have a FinTrack account."
       >
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <Field label="Group name">
@@ -160,29 +271,18 @@ export function CreateGroupButton({
             />
           </Field>
 
-          <Field
-            label="Your email"
-            hint="Required — group updates are sent here."
-          >
-            <Input
-              name="yourEmail"
-              type="email"
-              required
-              maxLength={254}
-              defaultValue={defaultEmail ?? ""}
-              placeholder="you@email.com"
-            />
-          </Field>
-
-          <Field label="Members">
-            <MemberRows />
-          </Field>
+          <div>
+            <span className="mb-1.5 block text-xs font-medium text-ink-700">
+              Members
+            </span>
+            <MemberPicker />
+          </div>
 
           <ErrorNote message={error} />
 
           <div className="flex gap-2 pt-1">
             <Button type="submit" disabled={pending} className="flex-1">
-              {pending ? "Creating & emailing…" : "Create & send invites"}
+              {pending ? "Creating…" : "Create group"}
             </Button>
             <Button
               type="button"
@@ -199,7 +299,13 @@ export function CreateGroupButton({
   );
 }
 
-export function AddMembersButton({ groupId }: { groupId: string }) {
+export function AddMembersButton({
+  groupId,
+  existingPhones,
+}: {
+  groupId: string;
+  existingPhones: Array<string | null>;
+}) {
   const [open, setOpen] = useState(false);
   const { pending, error, run, router } = useAction();
 
@@ -229,14 +335,14 @@ export function AddMembersButton({ groupId }: { groupId: string }) {
         open={open}
         onClose={() => setOpen(false)}
         title="Add members"
-        description="They'll get an email invite."
+        description="They're added straight away — no invite needed."
       >
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
-          <MemberRows />
+          <MemberPicker existingPhones={existingPhones} />
           <ErrorNote message={error} />
           <div className="flex gap-2 pt-1">
             <Button type="submit" disabled={pending} className="flex-1">
-              {pending ? "Sending invites…" : "Send invites"}
+              {pending ? "Adding…" : "Add to group"}
             </Button>
             <Button
               type="button"
@@ -255,36 +361,19 @@ export function AddMembersButton({ groupId }: { groupId: string }) {
 
 export function PendingMemberActions({ memberId }: { memberId: string }) {
   const { pending, error, run } = useAction();
-  const [sent, setSent] = useState(false);
 
   return (
     <span className="inline-flex flex-col items-end gap-1">
-      <span className="flex items-center gap-1">
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={pending || sent}
-          onClick={() =>
-            run(
-              () => resendGroupInvite(memberId),
-              () => setSent(true),
-            )
-          }
-        >
-          {sent ? "Sent" : "Resend"}
-        </Button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(() => removePendingMember(memberId))}
-          aria-label="Remove invite"
-          title="Remove invite"
-          className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-rose-50 hover:text-rose-600"
-        >
-          <Trash2 size={14} />
-        </button>
-      </span>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => run(() => removePendingMember(memberId))}
+        aria-label="Remove invite"
+        title="Remove invite"
+        className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-rose-50 hover:text-rose-600"
+      >
+        <Trash2 size={14} />
+      </button>
       {error && <ErrorNote message={error} />}
     </span>
   );
@@ -333,6 +422,64 @@ export function DeleteGroupButton({
           }
         >
           {pending ? "Deleting…" : "Yes, delete"}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setConfirming(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+      <ErrorNote message={error} />
+    </div>
+  );
+}
+
+export function LeaveGroupButton({
+  groupId,
+  name,
+}: {
+  groupId: string;
+  name: string;
+}) {
+  const { pending, error, run, router } = useAction();
+  const [confirming, setConfirming] = useState(false);
+
+  if (!confirming) {
+    return (
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => setConfirming(true)}
+      >
+        Leave group
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-xl border border-ink-200 bg-ink-50 p-3">
+      <p className="text-xs text-ink-700">
+        Leave &ldquo;{name}&rdquo;? Past expenses stay for the others. You can
+        be added back later.
+      </p>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="danger"
+          size="sm"
+          disabled={pending}
+          onClick={() =>
+            run(
+              () => leaveGroup(groupId),
+              () => router.push("/groups"),
+            )
+          }
+        >
+          {pending ? "Leaving…" : "Yes, leave"}
         </Button>
         <Button
           type="button"
@@ -517,7 +664,7 @@ export function AddExpenseButton({
         open={open}
         onClose={() => setOpen(false)}
         title="Add expense"
-        description="Everyone in the split gets an email."
+        description="Split it with anyone in the group."
       >
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <input type="hidden" name="splitType" value={splitType} />
@@ -674,7 +821,7 @@ export function SettleUpButton({
         open={open}
         onClose={() => setOpen(false)}
         title="Record a payment"
-        description="Both people get an email."
+        description="Record money paid between members."
       >
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <div className="grid grid-cols-2 gap-3">

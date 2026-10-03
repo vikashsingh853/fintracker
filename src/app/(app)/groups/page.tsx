@@ -4,12 +4,11 @@ import { CreateGroupButton } from "@/components/group-forms";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { getGroups } from "@/lib/groups";
 import { formatINRAdaptive, formatINRCompact } from "@/lib/money";
-import { getCurrentUser } from "@/lib/session";
 
 export const metadata = { title: "Groups — FinTrack" };
 
 export default async function GroupsPage() {
-  const [user, groups] = await Promise.all([getCurrentUser(), getGroups()]);
+  const groups = await getGroups();
 
   const owedToYou = groups.reduce(
     (sum, g) => sum + Math.max(0, g.yourBalance),
@@ -25,7 +24,7 @@ export default async function GroupsPage() {
       <PageHeader
         title="Groups"
         subtitle="Split bills with friends, flatmates and trips."
-        action={<CreateGroupButton defaultEmail={user.email} />}
+        action={<CreateGroupButton />}
       />
 
       <div className="grid grid-cols-2 gap-3">
@@ -57,8 +56,8 @@ export default async function GroupsPage() {
         <Card>
           <EmptyState
             title="No groups yet"
-            description="Create a group, add friends by email and start splitting expenses."
-            action={<CreateGroupButton defaultEmail={user.email} />}
+            description="Create a group, add friends by mobile number and start splitting expenses."
+            action={<CreateGroupButton />}
           />
         </Card>
       ) : (
